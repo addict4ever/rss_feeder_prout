@@ -57,7 +57,7 @@ L'application repose sur une architecture **MVVM** (Model-View-ViewModel) garant
 1.  **Prérequis :** Visual Studio 2022 avec la charge de travail ".NET MAUI" installée.
 2.  **Clonage du dépôt :**
     ```bash
-    git clone [https://github.com/votre-compte/rss-feeder-prout.git](https://github.com/votre-compte/rss-feeder-prout.git)
+    git clone [https://github.com/addict4ever/rss-feeder-prout.git](https://github.com/addict4ever/rss-feeder-prout.git)
     ```
 3.  **Configuration :** Restaurez les packages NuGet via Visual Studio.
 4.  **Déploiement :** Sélectionnez le projet `Rss_feeder_prout` et lancez-le sur votre appareil Android ou Windows.
