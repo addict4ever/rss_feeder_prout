@@ -243,28 +243,108 @@ namespace Rss_feeder_prout.Services
         public async Task DownloadAndSaveItemContentAsync(RssItem item)
         {
             if (item == null || string.IsNullOrWhiteSpace(item.Link)) return;
-
+        
+            if (item.IsDownloaded && !string.IsNullOrEmpty(item.ContentHtml)) return;
+        
+            await _semaphore.WaitAsync();
+        
             try
             {
-                // 1. Télécharger la page entière
-                string htmlContent = await _httpClient.GetStringAsync(item.Link);
-
-                // 2. SAUVEGARDE DIRECTE DU HTML BRUT
-                string contentToSave = htmlContent;
-
-                Debug.WriteLine($"Saving RAW HTML content for offline reading: {item.Link}");
-
-                await _dbService.SaveArticleContentAsync(item, contentToSave);
-
-                // Mettre à jour l'objet local après la sauvegarde
-                item.IsDownloaded = true;
-                item.ContentHtml = contentToSave;
+                string htmlContent = string.Empty;
+                int retryCount = 0;
+                int maxRetries = 3;
+                bool downloadSuccess = false;
+        
+                while (retryCount < maxRetries && !downloadSuccess)
+                {
+                    try
+                    {
+                        // Utilisation de HttpRequestMessage pour plus de souplesse si besoin
+                        htmlContent = await _httpClient.GetStringAsync(item.Link);
+        
+                        if (htmlContent.Contains("cf-browser-verification") ||
+                            htmlContent.Contains("captcha") ||
+                            htmlContent.Contains("Access Denied"))
+                        {
+                            Debug.WriteLine($"[Bot Detection] Bloqué : {item.Link}");
+                            return;
+                        }
+        
+                        downloadSuccess = true;
+                    }
+                    catch (Exception ex)
+                    {
+                        retryCount++;
+                        if (retryCount < maxRetries) await Task.Delay(2000);
+                    }
+                }
+        
+                if (string.IsNullOrEmpty(htmlContent)) return;
+        
+                string contentToSave = string.Empty;
+        
+                // --- PHASE A : SMARTREADER ---
+                var reader = new SmartReader.Reader(item.Link, htmlContent);
+                var article = await reader.GetArticleAsync();
+        
+                if (article != null && article.IsReadable && article.Content.Length > 300)
+                {
+                    contentToSave = article.Content;
+                }
+                else
+                {
+                    // --- PHASE B : ANGLESHARP (Moins destructif) ---
+                    var config = Configuration.Default;
+                    var context = BrowsingContext.New(config);
+                    var document = await context.OpenAsync(req => req.Content(htmlContent));
+        
+                    // 1. Correction des URLs (Images et Liens) - PRIORITAIRE
+                    var uriBase = new Uri(item.Link);
+                    foreach (var img in document.QuerySelectorAll("img"))
+                    {
+                        var src = img.GetAttribute("data-src") ?? img.GetAttribute("src");
+                        if (!string.IsNullOrEmpty(src) && !src.StartsWith("http"))
+                            img.SetAttribute("src", new Uri(uriBase, src).AbsoluteUri);
+                    }
+        
+                    // 2. Nettoyage CIBLÉ uniquement (on ne touche pas au layout)
+                    // On ne supprime que les éléments qui cassent vraiment la lecture ou la sécurité
+                    var blackList = document.QuerySelectorAll("script, style, iframe, noscript, .ads, .advertisement, #cookie-banner, .social-share");
+                    foreach (var element in blackList) { element.Remove(); }
+        
+                    // 3. Identification du contenu (Ordre de priorité)
+                    // On cherche d'abord les balises standards, sinon on prend le body
+                    var articleBody = document.QuerySelector("article") 
+                                   ?? document.QuerySelector(".post-content") 
+                                   ?? document.QuerySelector(".entry-content") 
+                                   ?? document.QuerySelector(".article-body")
+                                   ?? document.QuerySelector("main");
+        
+                    // Si on a trouvé un container spécifique, on l'utilise, sinon on prend le Body 
+                    // mais SANS nettoyer les balises div/p pour ne pas tout perdre.
+                    contentToSave = articleBody != null ? articleBody.ToHtml() : document.Body.InnerHtml;
+                }
+        
+                // --- ÉTAPE FINALE : SAUVEGARDE ---
+                if (!string.IsNullOrWhiteSpace(contentToSave) && contentToSave.Length > 150)
+                {
+                    // On évite la Regex agressive de minification qui peut coller des mots
+                    // On se contente de sauvegarder le HTML propre
+                    await _dbService.SaveArticleContentAsync(item, contentToSave.Trim());
+        
+                    item.IsDownloaded = true;
+                    item.ContentHtml = contentToSave;
+        
+                    Debug.WriteLine($"[Success] Contenu extrait : {item.Link}");
+                }
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Error downloading full content for {item.Link}: {ex.Message}");
-                // IMPORTANT : On relance l'exception pour que le ViewModel puisse afficher l'alerte à l'utilisateur
-                throw;
+                Debug.WriteLine($"[Error] {item.Link} : {ex.Message}");
+            }
+            finally
+            {
+                _semaphore.Release();
             }
         }
 
