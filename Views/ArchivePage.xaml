@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:Rss_feeder_prout.ViewModels"
+             xmlns:models="clr-namespace:Rss_feeder_prout.Models"
+             x:Class="Rss_feeder_prout.Views.ArchivePage"
+             x:DataType="vm:ArchiveViewModel"
+             Title="Archives"
+             BackgroundColor="{StaticResource Gray950}">
+
+    <CollectionView ItemsSource="{Binding ArchivedItems}" Margin="10">
+        <CollectionView.ItemTemplate>
+            <DataTemplate x:DataType="models:ArchiveItem">
+                <SwipeView>
+                    <SwipeView.RightItems>
+                        <SwipeItems>
+                            <SwipeItem Text="Supprimer"
+                                       BackgroundColor="Red"
+                                       IconImageSource="delete_icon.png"
+                                       Command="{Binding Source={RelativeSource AncestorType={x:Type vm:ArchiveViewModel}}, Path=DeleteArchiveCommand}"
+                                       CommandParameter="{Binding .}" />
+                        </SwipeItems>
+                    </SwipeView.RightItems>
+
+                    <Grid Padding="0,0,0,10">
+                        <Border StrokeShape="RoundRectangle 12" 
+                                StrokeThickness="0" 
+                                BackgroundColor="{StaticResource Gray900}">
+
+                            <VerticalStackLayout Padding="12" Spacing="6">
+
+                                <Label Text="{Binding Title}" 
+                                       FontAttributes="Bold" 
+                                       TextColor="White" 
+                                       FontSize="16" 
+                                       MaxLines="2"
+                                       LineBreakMode="TailTruncation"/>
+
+                                <HorizontalStackLayout Spacing="8" VerticalOptions="Center">
+                                    <Image Source="{Binding FaviconUrl}"
+                                           WidthRequest="16"
+                                           HeightRequest="16"
+                                           VerticalOptions="Center"/>
+
+                                    <Label Text="{Binding SiteName}" 
+                                           TextColor="{StaticResource Primary}" 
+                                           FontSize="12" 
+                                           FontAttributes="Bold"
+                                           VerticalOptions="Center"/>
+
+                                    <Label Text="•" TextColor="Gray" VerticalOptions="Center"/>
+
+                                    <Label Text="{Binding ArchivedAt, StringFormat='{0:dd MMM yyyy}'}" 
+                                           TextColor="Gray" 
+                                           FontSize="11"
+                                           VerticalOptions="Center"/>
+                                </HorizontalStackLayout>
+
+                                <Label Text="{Binding PreviewText}" 
+                                       TextColor="#BBBBBB" 
+                                       FontSize="13" 
+                                       MaxLines="3" 
+                                       LineBreakMode="TailTruncation" />
+
+                            </VerticalStackLayout>
+
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer 
+                                    Command="{Binding Source={RelativeSource AncestorType={x:Type vm:ArchiveViewModel}}, Path=OpenArchiveCommand}" 
+                                    CommandParameter="{Binding .}"/>
+                            </Border.GestureRecognizers>
+                        </Border>
+                    </Grid>
+                </SwipeView>
+            </DataTemplate>
+        </CollectionView.ItemTemplate>
+    </CollectionView>
+</ContentPage>

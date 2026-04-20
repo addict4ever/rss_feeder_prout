@@ -1,0 +1,109 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="Rss_feeder_prout.Views.PlaylistManagerPage"
+             xmlns:vm="clr-namespace:Rss_feeder_prout.ViewModels"
+             xmlns:models="clr-namespace:Rss_feeder_prout.Models"
+             x:DataType="vm:PlaylistManagerViewModel"
+             Shell.NavBarIsVisible="False"
+             Shell.PresentationMode="NotAnimated"
+             BackgroundColor="{StaticResource Gray950}">
+
+    <ContentPage.ToolbarItems>
+        <ToolbarItem Text="Ajouter" 
+                     Command="{Binding AddPlaylistCommand}" 
+                     IconImageSource="{FontImageSource FontFamily=FAS, Glyph=&#xf055;, Size=22, Color={StaticResource Primary}}" />
+
+        <ToolbarItem Text="Tout Synchro" 
+                     Command="{Binding SyncAllCommand}" 
+                     IconImageSource="{FontImageSource FontFamily=FAS, Glyph=&#xf021;, Size=22, Color={StaticResource Primary}}" />
+    </ContentPage.ToolbarItems>
+
+    <Grid RowDefinitions="Auto, *">
+
+        <SearchBar Grid.Row="0"
+                   Placeholder="Rechercher une playlist par nom..."
+                   Text="{Binding SearchText}"
+                   Margin="10" />
+
+        <CollectionView Grid.Row="1"
+                        ItemsSource="{Binding FilteredPlaylists}"
+                        SelectionMode="None">
+
+            <CollectionView.ItemsLayout>
+                <LinearItemsLayout Orientation="Vertical" />
+            </CollectionView.ItemsLayout>
+
+            <CollectionView.EmptyView>
+                <StackLayout Padding="30" IsVisible="{Binding IsNotBusy}">
+                    <Label Text="Aucune playlist trouvée. Ajoutez un nouveau flux pour commencer."
+                           HorizontalOptions="Center"
+                           VerticalOptions="Center"
+                           FontSize="Medium"
+                           TextColor="{StaticResource Gray500}" />
+                </StackLayout>
+            </CollectionView.EmptyView>
+
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="models:FeedPlaylist">
+                    <SwipeView>
+                        <SwipeView.RightItems>
+                            <SwipeItems>
+                                <SwipeItem Text="Supprimer"
+                                           IconImageSource="{FontImageSource FontFamily=FAS, Glyph=&#xf2ed;, Color=White, Size=20}"
+                                           BackgroundColor="Red"
+                                           Command="{Binding Source={RelativeSource AncestorType={x:Type vm:PlaylistManagerViewModel}}, Path=DeletePlaylistCommand}"
+                                           CommandParameter="{Binding .}"/>
+                            </SwipeItems>
+                        </SwipeView.RightItems>
+
+                        <Border Margin="10,5" Padding="15"
+                                StrokeShape="RoundRectangle 8"
+                                BackgroundColor="{StaticResource Secondary}">
+
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type vm:PlaylistManagerViewModel}}, Path=EditPlaylistCommand}"
+                                                      CommandParameter="{Binding .}" />
+                            </Border.GestureRecognizers>
+
+                            <Grid ColumnDefinitions="Auto, *, Auto">
+
+                                <Label Grid.Column="0" 
+                                       Text="&#xf058;"  FontFamily="FAS" FontSize="20"
+                                       TextColor="Green"
+                                       IsVisible="{Binding IsActive}" 
+                                       VerticalOptions="Center"
+                                       Margin="0,0,10,0"/>
+
+                                <StackLayout Grid.Column="1">
+                                    <Label Text="{Binding Name}" 
+                                           FontSize="Title" 
+                                           TextColor="White"
+                                           FontAttributes="Bold"/>
+
+                                    <Label Text="{Binding Urls.Count, StringFormat='{0} flux RSS enregistrés'}"
+                                           FontSize="Small"
+                                           TextColor="White"/>
+                                </StackLayout>
+
+                                <Image Grid.Column="2" 
+                                       Source="{FontImageSource FontFamily=FAS, Glyph=&#xf054;, Color=White, Size=18}"
+                                       VerticalOptions="Center"
+                                       Margin="10,0,0,0" />
+                            </Grid>
+                        </Border>
+                    </SwipeView>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+
+        <ActivityIndicator Grid.RowSpan="2"
+                           IsRunning="{Binding IsBusy}" 
+                           IsVisible="{Binding IsBusy}" 
+                           VerticalOptions="Center" 
+                           HorizontalOptions="Center" 
+                           Color="{StaticResource Primary}"/>
+
+    </Grid>
+
+</ContentPage>

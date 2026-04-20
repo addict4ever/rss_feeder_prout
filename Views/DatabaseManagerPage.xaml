@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:Rss_feeder_prout.ViewModels"
+             x:Class="Rss_feeder_prout.Views.DatabaseManagerPage"
+             Shell.NavBarIsVisible="False"
+             Shell.PresentationMode="NotAnimated"
+             BackgroundColor="{StaticResource Gray950}">
+
+    <ScrollView>
+        <StackLayout Padding="20" Spacing="20">
+
+            <Label Text="Administration de la Base de Données" 
+                   FontSize="Title" FontAttributes="Bold" TextColor="{StaticResource Primary}"/>
+
+            <Border StrokeShape="RoundRectangle 10" BackgroundColor="#2C3E50" Padding="15">
+                <VerticalStackLayout Spacing="5">
+                    <Label Text="État du système" TextColor="White" FontAttributes="Bold" HorizontalOptions="Center"/>
+                    <Label Text="{Binding StatusMessage}" TextColor="#3498DB" HorizontalOptions="Center" HorizontalTextAlignment="Center"/>
+                    <ActivityIndicator IsRunning="{Binding IsBusy}" Color="#3498DB" />
+                </VerticalStackLayout>
+            </Border>
+
+            <Label Text="Sauvegarde et Export" FontSize="18" FontAttributes="Bold" TextColor="White"/>
+            <Label Text="Sauvegarde le fichier RssProutDB.db3 pour inspection." FontSize="Small" Opacity="0.8"/>
+
+            <Button Text="Exporter la Base de Données" 
+                    Command="{Binding ExportDbCommand}" 
+                    IsEnabled="{Binding IsNotBusy}"
+                    BackgroundColor="Green" TextColor="White" CornerRadius="10"/>
+
+            <BoxView HeightRequest="1" Color="{StaticResource Secondary}" Opacity="0.3"/>
+
+            <Label Text="Nettoyage par ancienneté (Articles)" TextColor="White" FontSize="18" FontAttributes="Bold"/>
+
+            <FlexLayout Wrap="Wrap" JustifyContent="SpaceBetween" Margin="0,5">
+                <Button Text="1 Jour" Command="{Binding CleanDatabaseCommand}" CommandParameter="1d" 
+                        WidthRequest="85" HeightRequest="45" BackgroundColor="#34495E" Margin="2"/>
+                <Button Text="2 Jours" Command="{Binding CleanDatabaseCommand}" CommandParameter="2d" 
+                        WidthRequest="85" HeightRequest="45" BackgroundColor="#34495E" Margin="2"/>
+                <Button Text="3 Jours" Command="{Binding CleanDatabaseCommand}" CommandParameter="3d" 
+                        WidthRequest="85" HeightRequest="45" BackgroundColor="#34495E" Margin="2"/>
+                <Button Text="7 Jours" Command="{Binding CleanDatabaseCommand}" CommandParameter="7d" 
+                        WidthRequest="85" HeightRequest="45" BackgroundColor="#F39C12" Margin="2"/>
+            </FlexLayout>
+
+            <Button Text="Articles de + de 1 Mois" 
+                    Command="{Binding CleanDatabaseCommand}" CommandParameter="1m"
+                    BackgroundColor="#E67E22" CornerRadius="10"/>
+
+            <Button Text="Articles de + de 3 Mois" 
+                    Command="{Binding CleanDatabaseCommand}" CommandParameter="3m"
+                    BackgroundColor="#D35400" CornerRadius="10"/>
+
+            <Button Text="Supprimer uniquement les articles LUS" 
+                    Command="{Binding CleanDatabaseCommand}" CommandParameter="ReadOnly"
+                    BackgroundColor="#2980B9" CornerRadius="10"/>
+
+            <BoxView HeightRequest="1" Color="{StaticResource Secondary}" Opacity="0.3"/>
+
+            <Label Text="Gestion des Archives" TextColor="#9B59B6" FontSize="18" FontAttributes="Bold"/>
+            <Label Text="Ceci affecte les articles que vous avez sauvegardés." TextColor="Gray" FontSize="12"/>
+
+            <Button Text="Nettoyer Archives (+ 6 mois)" 
+                    Command="{Binding CleanDatabaseCommand}" CommandParameter="Archive6m"
+                    BackgroundColor="#8E44AD" CornerRadius="10"/>
+
+            <BoxView HeightRequest="1" Color="{StaticResource Secondary}" Opacity="0.3"/>
+
+            <Label Text="Zone Critique (Danger)" TextColor="#E74C3C" FontSize="18" FontAttributes="Bold"/>
+
+            <Button Text="VIDER TOUS LES FLUX (Sauf Archives)" 
+                    Command="{Binding CleanDatabaseCommand}" CommandParameter="All"
+                    BackgroundColor="#C0392B" FontAttributes="Bold" CornerRadius="10"/>
+
+            <Button Text="RÉINITIALISER TOUTE LA BASE (Full)" 
+                    Command="{Binding DeleteDbCommand}" 
+                    IsEnabled="{Binding IsNotBusy}"
+                    BackgroundColor="Black" TextColor="Red" BorderColor="Red" BorderWidth="1" CornerRadius="10"/>
+
+        </StackLayout>
+    </ScrollView>
+</ContentPage>

@@ -1,0 +1,273 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    x:Class="Rss_feeder_prout.Views.MainPage"
+    xmlns:vm="clr-namespace:Rss_feeder_prout.ViewModels"
+    xmlns:models="clr-namespace:Rss_feeder_prout.Models"
+    x:DataType="vm:MainViewModel"
+    Shell.NavBarIsVisible="False"
+    Shell.PresentationMode="NotAnimated"
+    BackgroundColor="{StaticResource Gray950}">
+
+    <Grid ColumnDefinitions="*" RowDefinitions="*">
+
+        <ScrollView IsVisible="{Binding ShowPlaylistsList}">
+            <StackLayout Spacing="10" Padding="15">
+
+                <Button 
+                    Text="📥 Tout synchroniser (Global)"
+                    Command="{Binding FullGlobalSyncCommand}"
+                    BackgroundColor="{StaticResource Primary}"
+                    TextColor="White"
+                    HeightRequest="50"
+                    CornerRadius="25"
+                    FontAttributes="Bold"
+                    Margin="0,10,0,5">
+                    <Button.Shadow>
+                        <Shadow Brush="Black" Offset="0,3" Opacity="0.3" Radius="5"/>
+                    </Button.Shadow>
+                </Button>
+
+                <Grid IsVisible="{Binding IsBusy}" 
+              BackgroundColor="{StaticResource Gray950}" 
+              Opacity="0.95"
+              AbsoluteLayout.LayoutBounds="0,0,1,1" 
+              AbsoluteLayout.LayoutFlags="All">
+
+                    <VerticalStackLayout VerticalOptions="Center" 
+                         HorizontalOptions="Center" 
+                         Padding="30" 
+                         Spacing="20"
+                         MaximumWidthRequest="600"
+                         WidthRequest="500">
+                        <Label Text="Synchronisation Globale" 
+               FontSize="24" 
+               FontAttributes="Bold" 
+               TextColor="White" 
+               HorizontalOptions="Center" />
+
+                        <ActivityIndicator IsRunning="True" Color="{StaticResource Primary}" />
+
+                        <Grid HeightRequest="40">
+                            <ProgressBar Progress="{Binding SyncProgress}" 
+                         ProgressColor="{StaticResource Primary}"
+                         ScaleY="8" 
+                         VerticalOptions="Center"/>
+
+                            <Label Text="{Binding SyncProgress, StringFormat='{0:P0}'}" 
+                   TextColor="White" 
+                   FontAttributes="Bold"
+                   HorizontalOptions="Center" 
+                   VerticalOptions="Center" 
+                   FontSize="14"/>
+                        </Grid>
+
+                        <Label Text="{Binding SyncStatus}" 
+               TextColor="{StaticResource Gray200}" 
+               HorizontalOptions="Center" 
+               HorizontalTextAlignment="Center"
+               FontSize="16" />
+
+                        <Button Text="ARRÊTER LE TÉLÉCHARGEMENT" 
+                Command="{Binding StopSyncCommand}"
+                BackgroundColor="#E74C3C" 
+                TextColor="White" 
+                CornerRadius="25"
+                HeightRequest="50"
+                FontAttributes="Bold"
+                Margin="0,20,0,0">
+                            <Button.Shadow>
+                                <Shadow Brush="Black" Offset="0,3" Radius="5" Opacity="0.3" />
+                            </Button.Shadow>
+                        </Button>
+
+                    </VerticalStackLayout>
+                </Grid>
+
+                <Label
+                    Text="Mes Catégories"
+                    FontSize="28"
+                    FontAttributes="Bold"
+                    HorizontalOptions="Center"
+                    Margin="0,10"
+                    TextColor="{StaticResource Primary}" />
+
+                <CollectionView
+                    ItemsSource="{Binding AllPlaylists}"
+                    SelectionMode="Single"
+                    SelectedItem="{Binding CurrentPlaylist}">
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="models:FeedPlaylist">
+                            <Border Margin="0,5" Padding="18" StrokeShape="RoundRectangle 12" BackgroundColor="{StaticResource Secondary}">
+                                <Border.Shadow>
+                                    <Shadow Brush="Black" Offset="0,2" Radius="5" Opacity="0.1" />
+                                </Border.Shadow>
+                                <Label
+                                    Text="{Binding Name}"
+                                    FontSize="18"
+                                    FontAttributes="Bold"
+                                    TextColor="{StaticResource White}" />
+                            </Border>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+            </StackLayout>
+        </ScrollView>
+
+        <ScrollView IsVisible="{Binding ShowSiteSelection}">
+            <StackLayout Spacing="10" Padding="10">
+
+                <Button
+                    Text="◀️ Retour"
+                    Command="{Binding GoBackToPlaylistsCommand}"
+                    HorizontalOptions="Start"
+                    BackgroundColor="Transparent"
+                    TextColor="{StaticResource Primary}"
+                    FontAttributes="Bold" />
+
+                <Label
+                    Text="{Binding CurrentPlaylist.Name}"
+                    FontSize="26"
+                    FontAttributes="Bold"
+                    HorizontalOptions="Center"
+                    TextColor="{StaticResource Gray900}" />
+
+                <Grid ColumnDefinitions="*, *" ColumnSpacing="10" Margin="0,10">
+                    <Button
+                        Grid.Column="0"
+                        Text="Tout Afficher"
+                        Command="{Binding ShowAllItemsInPlaylistCommand}"
+                        BackgroundColor="{StaticResource Primary}"
+                        TextColor="{StaticResource White}"
+                        CornerRadius="15"
+                        HeightRequest="45"
+                        FontSize="12" />
+                    <Button
+                        Grid.Column="1"
+                        Text="🔄 Sync"
+                        Command="{Binding SyncAllSitesInPlaylistCommand}"
+                        BackgroundColor="{StaticResource Secondary}"
+                        TextColor="{StaticResource White}"
+                        CornerRadius="15"
+                        HeightRequest="45"
+                        FontSize="12" />
+                </Grid>
+
+                <CollectionView
+    ItemsSource="{Binding CurrentSites}"
+    SelectionMode="Single"
+    SelectedItem="{Binding CurrentSite}"
+    ItemsLayout="VerticalGrid, 2">
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="models:FeedSite">
+                            <Grid Padding="6">
+                                <Border StrokeShape="RoundRectangle 15" StrokeThickness="0" BackgroundColor="{StaticResource White}" HeightRequest="150">
+                                    <Border.Shadow>
+                                        <Shadow Brush="Black" Offset="0,2" Radius="5" Opacity="0.1" />
+                                    </Border.Shadow>
+
+                                    <VerticalStackLayout VerticalOptions="Center" Spacing="12" Padding="10">
+                                        <Border StrokeShape="RoundRectangle 10" 
+                                HeightRequest="60" 
+                                WidthRequest="60" 
+                                HorizontalOptions="Center" 
+                                BackgroundColor="{StaticResource Gray100}" 
+                                Padding="10"
+                                StrokeThickness="0.5"
+                                Stroke="{StaticResource Gray200}">
+
+                                            <Image Source="{Binding DisplayIcon}" 
+                                   Aspect="AspectFit"
+                                   HeightRequest="40"
+                                   WidthRequest="40"
+                                   HorizontalOptions="Center"
+                                   VerticalOptions="Center" />
+                                        </Border>
+
+                                        <Label Text="{Binding Name}" 
+                               FontSize="14" 
+                               FontAttributes="Bold" 
+                               HorizontalTextAlignment="Center" 
+                               TextColor="{StaticResource Gray900}" 
+                               MaxLines="2" 
+                               LineBreakMode="TailTruncation" />
+                                    </VerticalStackLayout>
+                                </Border>
+                            </Grid>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+            </StackLayout>
+        </ScrollView>
+
+        <Grid
+            Grid.Column="0"
+            RowDefinitions="Auto, Auto, *"
+            Margin="10,0"
+            IsVisible="{Binding ShowFeedView}">
+
+            
+            
+
+            <Grid Grid.Row="0" ColumnDefinitions="Auto, *, Auto" Padding="0,10" ColumnSpacing="10">
+                <Button Grid.Column="0" Text="◀️" Command="{Binding GoBackToPlaylistsCommand}" WidthRequest="45" BackgroundColor="{StaticResource Gray100}" CornerRadius="10" />
+                <SearchBar Grid.Column="1" Placeholder="Rechercher..." Text="{Binding SearchText}" SearchCommand="{Binding SearchCommand}" HeightRequest="45" />
+                <Button Grid.Column="2" Text="🔄" Command="{Binding LoadFeedCommand}" WidthRequest="45" CornerRadius="10" />
+            </Grid>
+
+            <Label
+                Grid.Row="1"
+                Text="{Binding CurrentPlaylist.Name}"
+                FontSize="20"
+                FontAttributes="Bold"
+                TextColor="{StaticResource Primary}"
+                Margin="5,0,0,10" />
+
+            <CollectionView 
+    Grid.Row="2"
+    ItemsSource="{Binding FilteredRssItems}" 
+    SelectionMode="None">
+
+                <CollectionView.EmptyView>
+                    <VerticalStackLayout HorizontalOptions="Center" VerticalOptions="Center" Padding="50">
+                        <Label Text="📭" FontSize="60" HorizontalOptions="Center" Margin="0,0,0,10"/>
+                        <Label Text="Aucun article disponible" FontAttributes="Bold" HorizontalOptions="Center" />
+                    </VerticalStackLayout>
+                </CollectionView.EmptyView>
+
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="models:RssItem">
+                        <Grid Padding="0,8">
+                            <Border StrokeShape="RoundRectangle 15" StrokeThickness="0" BackgroundColor="{Binding BackgroundColor}">
+                                <Border.Shadow>
+                                    <Shadow Brush="Black" Offset="0,2" Radius="4" Opacity="0.1" />
+                                </Border.Shadow>
+
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer 
+                            Command="{Binding Source={RelativeSource AncestorType={x:Type vm:MainViewModel}}, Path=OpenItemCommand}" 
+                            CommandParameter="{Binding .}" />
+                                </Border.GestureRecognizers>
+
+                                <Grid RowDefinitions="Auto, Auto, Auto" Padding="15">
+                                    <Label Grid.Row="0" Text="{Binding Title}" FontSize="18" FontAttributes="Bold" TextColor="{StaticResource Gray900}" MaxLines="2" LineBreakMode="TailTruncation" />
+
+                                    <HorizontalStackLayout Grid.Row="1" Spacing="8" Margin="0,8">
+                                        <Label Text="{Binding PublishDate, StringFormat='{0:dd MMM HH:mm}'}" FontSize="11" TextColor="{StaticResource Gray500}" VerticalOptions="Center" />
+                                        <BoxView WidthRequest="1" HeightRequest="12" Color="{StaticResource Gray300}" VerticalOptions="Center"/>
+                                        <Label Text="{Binding SiteName}" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource Primary}" VerticalOptions="Center" />
+                                        <Label Text="💾" IsVisible="{Binding IsDownloaded}" FontSize="12" VerticalOptions="Center" />
+                                        <Label Text="👁️" IsVisible="{Binding IsRead}" FontSize="12" VerticalOptions="Center" />
+                                    </HorizontalStackLayout>
+
+                                    <Label Grid.Row="2" Text="{Binding Summary}" FontSize="14" TextColor="{StaticResource Gray600}" MaxLines="3" LineBreakMode="TailTruncation" />
+                                </Grid>
+                            </Border>
+                        </Grid>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </Grid>
+    </Grid>
+</ContentPage>

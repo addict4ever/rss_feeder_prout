@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="Rss_feeder_prout.Views.PlaylistDetailPage"
+             xmlns:vm="clr-namespace:Rss_feeder_prout.ViewModels"
+             xmlns:converters="clr-namespace:Rss_feeder_prout.Converters"
+             xmlns:models="clr-namespace:Rss_feeder_prout.Models"
+             x:DataType="vm:PlaylistDetailViewModel"
+             Title="{Binding CurrentPlaylist.Name, StringFormat='Configuration : {0}'}"
+             Shell.NavBarIsVisible="False"
+             Shell.PresentationMode="NotAnimated"
+             BackgroundColor="{StaticResource Gray950}"> 
+
+    <ContentPage.Resources>
+        <converters:ListHeightConverter x:Key="ListHeightConverter" />
+    </ContentPage.Resources>
+
+    <ContentPage.ToolbarItems>
+        <ToolbarItem Text="Sauvegarder"
+                     Command="{Binding SaveCommand}"
+                     IconImageSource="{FontImageSource FontFamily=FAS, Glyph=&#xf0c7;, Size=22, Color={StaticResource Primary}}">
+            <ToolbarItem.IsEnabled>
+                <Binding Path="IsNotBusy" />
+            </ToolbarItem.IsEnabled>
+        </ToolbarItem>
+    </ContentPage.ToolbarItems>
+
+    <Grid RowDefinitions="*">
+
+        <ScrollView>
+            <VerticalStackLayout Padding="20" Spacing="20" HorizontalOptions="Center" MaximumWidthRequest="800">
+
+                <Border StrokeShape="RoundRectangle 15" 
+                        StrokeThickness="0" 
+                        BackgroundColor="{StaticResource Secondary}" 
+                        Padding="20">
+                    <Border.Shadow>
+                        <Shadow Brush="Black" Offset="0,3" Radius="10" Opacity="0.15" />
+                    </Border.Shadow>
+
+                    <VerticalStackLayout Spacing="15">
+                        <Label Text="🏷️ Paramètres de la Catégorie" 
+                               FontSize="18" 
+                               FontAttributes="Bold" 
+                               TextColor="White"/>
+
+                        <VerticalStackLayout Spacing="5">
+                            <Label Text="Nom de la playlist" TextColor="White" FontSize="Caption" Opacity="0.8"/>
+                            <Entry Text="{Binding CurrentPlaylist.Name}"
+                                   Placeholder="Ex: Actualités Tech"
+                                   TextColor="White"
+                                   PlaceholderColor="LightGray"
+                                   BackgroundColor="#33FFFFFF"/>
+                        </VerticalStackLayout>
+
+                        <Grid ColumnDefinitions="*, Auto" Margin="0,5">
+                            <Label Grid.Column="0"
+                                   Text="Activer la synchronisation"
+                                   VerticalOptions="Center"
+                                   TextColor="White"
+                                   FontAttributes="Bold"/>
+                            <Switch Grid.Column="1"
+                                    IsToggled="{Binding CurrentPlaylist.IsActive}"
+                                    ThumbColor="White"
+                                    OnColor="{StaticResource Primary}"/>
+                        </Grid>
+                    </VerticalStackLayout>
+                </Border>
+
+                <Label Text="➕ Ajouter un nouveau flux RSS" 
+                       FontSize="16" 
+                       FontAttributes="Bold" 
+                       TextColor="{StaticResource Gray900}"/>
+
+                <Grid ColumnDefinitions="*, Auto" ColumnSpacing="10">
+                    <Border Grid.Column="0" StrokeShape="RoundRectangle 10" StrokeThickness="1" Stroke="{StaticResource Gray300}" Padding="5,0">
+                        <Entry Placeholder="URL du flux (xml, rss, atom)"
+                                Text="{Binding NewUrlText}"
+                                Keyboard="Url"
+                                TextColor="{StaticResource Gray900}"
+                                HorizontalOptions="Fill"/>
+                    </Border>
+                    <Button Grid.Column="1"
+                            Text="Ajouter"
+                            Padding="20,0"
+                            CornerRadius="10"
+                            Command="{Binding AddSiteCommand}"
+                            BackgroundColor="{StaticResource Primary}"/>
+                </Grid>
+
+                <HorizontalStackLayout Spacing="10" Margin="0,10,0,0">
+                    <Label Text="📡" FontSize="20"/>
+                    <Label Text="{Binding Sites.Count, StringFormat='{0} Sources enregistrées'}"
+                           FontSize="16" 
+                           FontAttributes="Bold" 
+                           VerticalOptions="Center"
+                           TextColor="{StaticResource Gray900}"/>
+                </HorizontalStackLayout>
+
+                <CollectionView ItemsSource="{Binding Sites}"
+                                SelectionMode="None"
+                                HeightRequest="{Binding Sites.Count, Converter={StaticResource ListHeightConverter}, ConverterParameter=85}">
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="models:FeedSite">
+                            <SwipeView>
+                                <SwipeView.RightItems>
+                                    <SwipeItems Mode="Reveal">
+                                        <SwipeItem Text="Supprimer"
+                                                   BackgroundColor="Red"
+                                                   Command="{Binding Source={RelativeSource AncestorType={x:Type vm:PlaylistDetailViewModel}}, Path=DeleteSiteCommand}"
+                                                   CommandParameter="{Binding .}"/>
+                                    </SwipeItems>
+                                </SwipeView.RightItems>
+
+                                <Border Margin="0, 4" 
+                                        Padding="12" 
+                                        StrokeShape="RoundRectangle 12" 
+                                        BackgroundColor="{StaticResource White}"
+                                        StrokeThickness="0.5"
+                                        Stroke="{StaticResource Gray200}">
+                                    <Border.Shadow>
+                                        <Shadow Brush="Black" Offset="0,2" Radius="3" Opacity="0.05" />
+                                    </Border.Shadow>
+
+                                    <Grid ColumnDefinitions="Auto, *, Auto" ColumnSpacing="15">
+                                        <Border Grid.Column="0" 
+                                                StrokeShape="RoundRectangle 8" 
+                                                HeightRequest="45" WidthRequest="45" 
+                                                BackgroundColor="{StaticResource Gray100}" 
+                                                StrokeThickness="0">
+                                            <Image Source="{Binding IconUrl}" 
+                                                   Aspect="AspectFit" 
+                                                   Margin="8"/>
+                                        </Border>
+
+                                        <VerticalStackLayout Grid.Column="1" VerticalOptions="Center">
+                                            <Label Text="{Binding Name}" 
+                                                   FontSize="15" 
+                                                   FontAttributes="Bold" 
+                                                   TextColor="{StaticResource Gray900}"
+                                                   MaxLines="1"
+                                                   LineBreakMode="TailTruncation"/>
+                                            <Label Text="{Binding FeedUrl}" 
+                                                   FontSize="12" 
+                                                   TextColor="{StaticResource Gray500}"
+                                                   MaxLines="1"
+                                                   LineBreakMode="MiddleTruncation"/>
+                                        </VerticalStackLayout>
+
+                                        <Label Grid.Column="2" Text="≡" 
+                                               TextColor="{StaticResource Gray300}" 
+                                               FontSize="24" 
+                                               VerticalOptions="Center" 
+                                               Margin="0,0,5,0"/>
+                                    </Grid>
+                                </Border>
+                            </SwipeView>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+
+            </VerticalStackLayout>
+        </ScrollView>
+
+        <Grid IsVisible="{Binding IsBusy}" BackgroundColor="#80000000">
+            <VerticalStackLayout VerticalOptions="Center" HorizontalOptions="Center" Spacing="15">
+                <ActivityIndicator IsRunning="True" Color="{StaticResource Primary}" HeightRequest="50" WidthRequest="50"/>
+                <Label Text="Traitement en cours..." TextColor="White" FontAttributes="Bold"/>
+            </VerticalStackLayout>
+        </Grid>
+
+    </Grid>
+</ContentPage>

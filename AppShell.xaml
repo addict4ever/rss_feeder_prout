@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Shell
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:local="clr-namespace:Rss_feeder_prout.Views"
+    x:Class="Rss_feeder_prout.AppShell"
+    Shell.FlyoutBehavior="Flyout"
+    BackgroundColor="{StaticResource Primary}">
+
+    <Shell.FlyoutHeader>
+        <Grid HeightRequest="150" BackgroundColor="{StaticResource PrimaryDark}">
+            <Label Text="Rss_Prout" 
+                   TextColor="Grey" 
+                   FontSize="Title" 
+                   VerticalOptions="Center" 
+                   HorizontalOptions="Center"/>
+        </Grid>
+    </Shell.FlyoutHeader>
+
+    <FlyoutItem Title="Accueil / Lecteur" Icon="rss_icon.png" Route="FeedReaderRoute">
+        <ShellContent
+            ContentTemplate="{DataTemplate local:MainPage}"
+            Route="MainPage" />
+    </FlyoutItem>
+
+    <FlyoutItem Title="Gérer les Playlists" Icon="list.png" Route="PlaylistRoute">
+        <ShellContent
+            ContentTemplate="{DataTemplate local:PlaylistManagerPage}"
+            Route="PlaylistManagerPage" />
+    </FlyoutItem>
+
+    <FlyoutItem Title="Base de Données" Icon="database.png" Route="DBManagerRoute">
+        <ShellContent
+            ContentTemplate="{DataTemplate local:DatabaseManagerPage}"
+            Route="DatabaseManagerPage" />
+    </FlyoutItem>
+
+    <FlyoutItem Title="Archives" Icon="archive.png">
+        <ShellContent ContentTemplate="{DataTemplate local:ArchivePage}" />
+    </FlyoutItem>
+
+    <MenuItem Text="❌ Quitter" Clicked="OnExitClicked" />
+
+    <MenuItem Text=" " IsEnabled="False" />
+    <MenuItem Text="Made by Xartoff" IsEnabled="False" />
+    <MenuItem Text="🌐 Visitez pouetpouet.ca" Clicked="OnOpenWebsiteClicked" />
+
+</Shell>
