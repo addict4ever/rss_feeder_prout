@@ -1,19 +1,45 @@
-﻿<?xml version = "1.0" encoding = "UTF-8" ?>
+﻿<?xml version="1.0" encoding="UTF-8" ?>
 <Application xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:local="clr-namespace:Rss_feeder_prout"
-             xmlns:converters="clr-namespace:Rss_feeder_prout.Converters"  x:Class="Rss_feeder_prout.App">
+             xmlns:converters="clr-namespace:Rss_feeder_prout.Converters"
+             x:Class="Rss_feeder_prout.App">
+
     <Application.Resources>
         <ResourceDictionary>
-
-            <converters:InverseBoolConverter x:Key="InverseBoolConverter" />
-            <converters:NullToBoolConverter x:Key="NullToBoolConverter" />
-
 
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="Resources/Styles/Colors.xaml" />
                 <ResourceDictionary Source="Resources/Styles/Styles.xaml" />
             </ResourceDictionary.MergedDictionaries>
+
+            <converters:InverseBoolConverter x:Key="InverseBoolConverter" />
+            <converters:NullToBoolConverter x:Key="NullToBoolConverter" />
+
+            <Style x:Key="FilterChipStyle" TargetType="Button">
+                <Setter Property="BackgroundColor" Value="{StaticResource Gray100}" />
+                <Setter Property="TextColor" Value="{StaticResource Gray900}" />
+                <Setter Property="CornerRadius" Value="18" />
+                <Setter Property="FontSize" Value="12" />
+                <Setter Property="HeightRequest" Value="36" />
+                <Setter Property="Padding" Value="12,0" />
+                <Setter Property="BorderWidth" Value="0" />
+
+                <Setter Property="VisualStateManager.VisualStateGroups">
+                    <VisualStateGroupList>
+                        <VisualStateGroup x:Name="CommonStates">
+                            <VisualState x:Name="Normal" />
+                            <VisualState x:Name="Pressed">
+                                <VisualState.Setters>
+                                    <Setter Property="BackgroundColor" Value="{StaticResource Primary}" />
+                                    <Setter Property="TextColor" Value="White" />
+                                </VisualState.Setters>
+                            </VisualState>
+                        </VisualStateGroup>
+                    </VisualStateGroupList>
+                </Setter>
+            </Style>
+
         </ResourceDictionary>
     </Application.Resources>
 </Application>

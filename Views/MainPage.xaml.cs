@@ -12,5 +12,11 @@ namespace Rss_feeder_prout.Views
             // Le BindingContext est la connexion entre la vue et le ViewModel
             BindingContext = vm;
         }
+
+        private void OnMenuButtonClicked(object sender, EventArgs e)
+        {
+            // On inverse l'état actuel : si c'est vrai, ça devient faux, et inversement
+            Shell.Current.FlyoutIsPresented = !Shell.Current.FlyoutIsPresented;
+        }
     }
 }

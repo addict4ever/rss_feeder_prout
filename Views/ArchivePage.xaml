@@ -3,76 +3,90 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:vm="clr-namespace:Rss_feeder_prout.ViewModels"
              xmlns:models="clr-namespace:Rss_feeder_prout.Models"
+             xmlns:views="clr-namespace:Rss_feeder_prout.Views"
              x:Class="Rss_feeder_prout.Views.ArchivePage"
              x:DataType="vm:ArchiveViewModel"
-             Title="Archives"
+             Shell.NavBarIsVisible="False"
              BackgroundColor="{StaticResource Gray950}">
 
-    <CollectionView ItemsSource="{Binding ArchivedItems}" Margin="10">
-        <CollectionView.ItemTemplate>
-            <DataTemplate x:DataType="models:ArchiveItem">
-                <SwipeView>
-                    <SwipeView.RightItems>
-                        <SwipeItems>
-                            <SwipeItem Text="Supprimer"
-                                       BackgroundColor="Red"
-                                       IconImageSource="delete_icon.png"
-                                       Command="{Binding Source={RelativeSource AncestorType={x:Type vm:ArchiveViewModel}}, Path=DeleteArchiveCommand}"
-                                       CommandParameter="{Binding .}" />
-                        </SwipeItems>
-                    </SwipeView.RightItems>
+    <Grid RowDefinitions="Auto, *">
 
-                    <Grid Padding="0,0,0,10">
-                        <Border StrokeShape="RoundRectangle 12" 
-                                StrokeThickness="0" 
-                                BackgroundColor="{StaticResource Gray900}">
+        <Grid Grid.Row="0" Margin="0,50,0,10" HeightRequest="70">
+            <Label Text="Archives" 
+                   FontSize="28" 
+                   FontAttributes="Bold" 
+                   TextColor="{StaticResource Primary}" 
+                   HorizontalOptions="Center" 
+                   VerticalOptions="Center" />
 
-                            <VerticalStackLayout Padding="12" Spacing="6">
+            <views:HeaderView />
+        </Grid>
 
-                                <Label Text="{Binding Title}" 
-                                       FontAttributes="Bold" 
-                                       TextColor="White" 
-                                       FontSize="16" 
-                                       MaxLines="2"
-                                       LineBreakMode="TailTruncation"/>
+        <CollectionView Grid.Row="1" 
+                        ItemsSource="{Binding ArchivedItems}" 
+                        Margin="10">
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="models:ArchiveItem">
+                    <SwipeView>
+                        <SwipeView.RightItems>
+                            <SwipeItems>
+                                <SwipeItem Text="Supprimer"
+                                           BackgroundColor="Red"
+                                           Command="{Binding Source={RelativeSource AncestorType={x:Type vm:ArchiveViewModel}}, Path=DeleteArchiveCommand}"
+                                           CommandParameter="{Binding .}" />
+                            </SwipeItems>
+                        </SwipeView.RightItems>
 
-                                <HorizontalStackLayout Spacing="8" VerticalOptions="Center">
-                                    <Image Source="{Binding FaviconUrl}"
-                                           WidthRequest="16"
-                                           HeightRequest="16"
-                                           VerticalOptions="Center"/>
+                        <Grid Padding="0,0,0,10">
+                            <Border StrokeShape="RoundRectangle 12" 
+                                    StrokeThickness="0" 
+                                    BackgroundColor="{StaticResource Gray900}">
 
-                                    <Label Text="{Binding SiteName}" 
-                                           TextColor="{StaticResource Primary}" 
-                                           FontSize="12" 
-                                           FontAttributes="Bold"
-                                           VerticalOptions="Center"/>
+                                <VerticalStackLayout Padding="12" Spacing="6">
+                                    <Label Text="{Binding Title}" 
+                                           FontAttributes="Bold" 
+                                           TextColor="White" 
+                                           FontSize="16" 
+                                           MaxLines="2"
+                                           LineBreakMode="TailTruncation"/>
 
-                                    <Label Text="•" TextColor="Gray" VerticalOptions="Center"/>
+                                    <HorizontalStackLayout Spacing="8" VerticalOptions="Center">
+                                        <Image Source="{Binding FaviconUrl}"
+                                               WidthRequest="16"
+                                               HeightRequest="16"
+                                               VerticalOptions="Center"/>
 
-                                    <Label Text="{Binding ArchivedAt, StringFormat='{0:dd MMM yyyy}'}" 
-                                           TextColor="Gray" 
-                                           FontSize="11"
-                                           VerticalOptions="Center"/>
-                                </HorizontalStackLayout>
+                                        <Label Text="{Binding SiteName}" 
+                                               TextColor="{StaticResource Primary}" 
+                                               FontSize="12" 
+                                               FontAttributes="Bold"
+                                               VerticalOptions="Center"/>
 
-                                <Label Text="{Binding PreviewText}" 
-                                       TextColor="#BBBBBB" 
-                                       FontSize="13" 
-                                       MaxLines="3" 
-                                       LineBreakMode="TailTruncation" />
+                                        <Label Text="•" TextColor="Gray" VerticalOptions="Center"/>
 
-                            </VerticalStackLayout>
+                                        <Label Text="{Binding ArchivedAt, StringFormat='{0:dd MMM yyyy}'}" 
+                                               TextColor="Gray" 
+                                               FontSize="11"
+                                               VerticalOptions="Center"/>
+                                    </HorizontalStackLayout>
 
-                            <Border.GestureRecognizers>
-                                <TapGestureRecognizer 
-                                    Command="{Binding Source={RelativeSource AncestorType={x:Type vm:ArchiveViewModel}}, Path=OpenArchiveCommand}" 
-                                    CommandParameter="{Binding .}"/>
-                            </Border.GestureRecognizers>
-                        </Border>
-                    </Grid>
-                </SwipeView>
-            </DataTemplate>
-        </CollectionView.ItemTemplate>
-    </CollectionView>
+                                    <Label Text="{Binding PreviewText}" 
+                                           TextColor="#BBBBBB" 
+                                           FontSize="13" 
+                                           MaxLines="3" 
+                                           LineBreakMode="TailTruncation" />
+                                </VerticalStackLayout>
+
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer 
+                                        Command="{Binding Source={RelativeSource AncestorType={x:Type vm:ArchiveViewModel}}, Path=OpenArchiveCommand}" 
+                                        CommandParameter="{Binding .}"/>
+                                </Border.GestureRecognizers>
+                            </Border>
+                        </Grid>
+                    </SwipeView>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+    </Grid>
 </ContentPage>

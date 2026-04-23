@@ -5,16 +5,18 @@
     x:Class="Rss_feeder_prout.Views.MainPage"
     xmlns:vm="clr-namespace:Rss_feeder_prout.ViewModels"
     xmlns:models="clr-namespace:Rss_feeder_prout.Models"
+    xmlns:views="clr-namespace:Rss_feeder_prout.Views"
     x:DataType="vm:MainViewModel"
     Shell.NavBarIsVisible="False"
     Shell.PresentationMode="NotAnimated"
     BackgroundColor="{StaticResource Gray950}">
-
+    
+    
     <Grid ColumnDefinitions="*" RowDefinitions="*">
-
+        
         <ScrollView IsVisible="{Binding ShowPlaylistsList}">
             <StackLayout Spacing="10" Padding="15">
-
+                
                 <Button 
                     Text="📥 Tout synchroniser (Global)"
                     Command="{Binding FullGlobalSyncCommand}"
@@ -84,31 +86,66 @@
 
                     </VerticalStackLayout>
                 </Grid>
+                <Grid>
+                    <VerticalStackLayout>
+                    </VerticalStackLayout>
 
-                <Label
-                    Text="Mes Catégories"
-                    FontSize="28"
-                    FontAttributes="Bold"
-                    HorizontalOptions="Center"
-                    Margin="0,10"
-                    TextColor="{StaticResource Primary}" />
+                    <Grid VerticalOptions="Start" Margin="0,50,0,10">
+
+                        <Label
+            Text="Mes Catégories"
+            FontSize="14"
+            FontAttributes="Bold"
+            HorizontalOptions="Center"
+            VerticalOptions="Center"
+            TextColor="{StaticResource Primary}" />
+
+                        <views:HeaderView />
+                    </Grid>
+                </Grid>
 
                 <CollectionView
-                    ItemsSource="{Binding AllPlaylists}"
-                    SelectionMode="Single"
-                    SelectedItem="{Binding CurrentPlaylist}">
+    ItemsSource="{Binding AllPlaylists}"
+    SelectionMode="Single"
+    SelectedItem="{Binding CurrentPlaylist}"
+    Margin="10,5">
+
                     <CollectionView.ItemTemplate>
                         <DataTemplate x:DataType="models:FeedPlaylist">
-                            <Border Margin="0,5" Padding="18" StrokeShape="RoundRectangle 12" BackgroundColor="{StaticResource Secondary}">
-                                <Border.Shadow>
-                                    <Shadow Brush="Black" Offset="0,2" Radius="5" Opacity="0.1" />
-                                </Border.Shadow>
-                                <Label
-                                    Text="{Binding Name}"
-                                    FontSize="18"
-                                    FontAttributes="Bold"
-                                    TextColor="{StaticResource White}" />
-                            </Border>
+                            <Grid Padding="0,5">
+                                <Border StrokeShape="RoundRectangle 12" 
+                        StrokeThickness="0.5"
+                        Stroke="{StaticResource Gray200}"
+                        BackgroundColor="White"
+                        Padding="0">
+
+                                    <Border.Shadow>
+                                        <Shadow Brush="Black" Offset="0,2" Radius="4" Opacity="0.08" />
+                                    </Border.Shadow>
+
+                                    <Grid ColumnDefinitions="6, *">
+
+                                        <BoxView Grid.Column="0" 
+                                 BackgroundColor="{StaticResource Primary}" 
+                                 VerticalOptions="Fill" />
+
+                                        <StackLayout Grid.Column="1" Padding="18,15">
+                                            <Label
+                                Text="{Binding Name}"
+                                FontSize="18"
+                                FontAttributes="Bold"
+                                TextColor="{StaticResource Gray900}" />
+
+                                            <Label 
+                                Text="Consulter les flux"
+                                FontSize="12"
+                                TextColor="{StaticResource Gray500}"
+                                Margin="0,2,0,0" />
+                                        </StackLayout>
+
+                                    </Grid>
+                                </Border>
+                            </Grid>
                         </DataTemplate>
                     </CollectionView.ItemTemplate>
                 </CollectionView>
@@ -118,13 +155,7 @@
         <ScrollView IsVisible="{Binding ShowSiteSelection}">
             <StackLayout Spacing="10" Padding="10">
 
-                <Button
-                    Text="◀️ Retour"
-                    Command="{Binding GoBackToPlaylistsCommand}"
-                    HorizontalOptions="Start"
-                    BackgroundColor="Transparent"
-                    TextColor="{StaticResource Primary}"
-                    FontAttributes="Bold" />
+                
 
                 <Label
                     Text="{Binding CurrentPlaylist.Name}"
@@ -201,38 +232,70 @@
             </StackLayout>
         </ScrollView>
 
-        <Grid
-            Grid.Column="0"
-            RowDefinitions="Auto, Auto, *"
-            Margin="10,0"
-            IsVisible="{Binding ShowFeedView}">
+        <Grid Grid.Column="0"
+      RowDefinitions="Auto, Auto, Auto, *"
+      Margin="10,0"
+      IsVisible="{Binding ShowFeedView}">
 
-            
-            
+            <Grid Grid.Row="0" ColumnDefinitions="Auto, *, Auto, Auto" Padding="0,10" ColumnSpacing="10">
+                <Button Grid.Column="0" Text="◀️" 
+                Command="{Binding GoBackToPlaylistsCommand}" 
+                WidthRequest="45" BackgroundColor="{StaticResource Gray100}" CornerRadius="10" />
 
-            <Grid Grid.Row="0" ColumnDefinitions="Auto, *, Auto" Padding="0,10" ColumnSpacing="10">
-                <Button Grid.Column="0" Text="◀️" Command="{Binding GoBackToPlaylistsCommand}" WidthRequest="45" BackgroundColor="{StaticResource Gray100}" CornerRadius="10" />
-                <SearchBar Grid.Column="1" Placeholder="Rechercher..." Text="{Binding SearchText}" SearchCommand="{Binding SearchCommand}" HeightRequest="45" />
-                <Button Grid.Column="2" Text="🔄" Command="{Binding LoadFeedCommand}" WidthRequest="45" CornerRadius="10" />
+                <Label Grid.Column="1" 
+               Text="{Binding CurrentPlaylist.Name}" 
+               FontSize="18" FontAttributes="Bold" 
+               TextColor="{StaticResource Primary}" 
+               VerticalOptions="Center" Margin="5,0" />
+
+                <Button Grid.Column="2" Text="🔍" 
+                Command="{Binding ToggleSearchCommand}" 
+                WidthRequest="45" BackgroundColor="{StaticResource Gray100}" CornerRadius="10" />
+
+                <Button Grid.Column="3" Text="🔄" 
+                Command="{Binding LoadFeedCommand}" 
+                WidthRequest="45" CornerRadius="10" />
             </Grid>
 
-            <Label
-                Grid.Row="1"
-                Text="{Binding CurrentPlaylist.Name}"
-                FontSize="20"
-                FontAttributes="Bold"
-                TextColor="{StaticResource Primary}"
-                Margin="5,0,0,10" />
+            <Grid Grid.Row="1" IsVisible="{Binding IsSearchVisible}" Margin="0,0,0,10">
+                <SearchBar Placeholder="Rechercher dans les articles..." 
+                   Text="{Binding SearchText}" 
+                   SearchCommand="{Binding SearchCommand}" 
+                   HeightRequest="45" />
+            </Grid>
 
-            <CollectionView 
-    Grid.Row="2"
-    ItemsSource="{Binding FilteredRssItems}" 
-    SelectionMode="None">
+            <ScrollView Grid.Row="2" Orientation="Horizontal" HorizontalScrollBarVisibility="Never" Margin="0,0,0,10">
+                <HorizontalStackLayout Spacing="8" Padding="2">
+                    <Button Text="Tout" Style="{StaticResource FilterChipStyle}" 
+                    Command="{Binding FilterCommand}" CommandParameter="All" />
+                    <Button Text="🔵 Non lus" Style="{StaticResource FilterChipStyle}" 
+                    Command="{Binding FilterCommand}" CommandParameter="Unread" />
+                    <Button Text="👁️ Lus" Style="{StaticResource FilterChipStyle}" 
+                    Command="{Binding FilterCommand}" CommandParameter="Read" />
+
+                    <BoxView WidthRequest="1" HeightRequest="20" Color="{StaticResource Gray300}" VerticalOptions="Center" Margin="5,0"/>
+
+                    <Button Text="✔️ Tout marquer lu" 
+                    Style="{StaticResource FilterChipStyle}" 
+                    Command="{Binding MarkAllAsReadCommand}"
+                    BackgroundColor="{StaticResource Gray100}"
+                    TextColor="{StaticResource Primary}" />
+
+                    <Button Text="🆕 Récent" Style="{StaticResource FilterChipStyle}" 
+                    Command="{Binding SortCommand}" CommandParameter="Newest" />
+                    <Button Text="⏳ Ancien" Style="{StaticResource FilterChipStyle}" 
+                    Command="{Binding SortCommand}" CommandParameter="Oldest" />
+                </HorizontalStackLayout>
+            </ScrollView>
+
+            <CollectionView Grid.Row="3"
+                    ItemsSource="{Binding FilteredRssItems}" 
+                    SelectionMode="None">
 
                 <CollectionView.EmptyView>
                     <VerticalStackLayout HorizontalOptions="Center" VerticalOptions="Center" Padding="50">
                         <Label Text="📭" FontSize="60" HorizontalOptions="Center" Margin="0,0,0,10"/>
-                        <Label Text="Aucun article disponible" FontAttributes="Bold" HorizontalOptions="Center" />
+                        <Label Text="Aucun article ne correspond" FontAttributes="Bold" HorizontalOptions="Center" />
                     </VerticalStackLayout>
                 </CollectionView.EmptyView>
 
@@ -246,19 +309,23 @@
 
                                 <Border.GestureRecognizers>
                                     <TapGestureRecognizer 
-                            Command="{Binding Source={RelativeSource AncestorType={x:Type vm:MainViewModel}}, Path=OpenItemCommand}" 
-                            CommandParameter="{Binding .}" />
+                                Command="{Binding Source={RelativeSource AncestorType={x:Type vm:MainViewModel}}, Path=OpenItemCommand}" 
+                                CommandParameter="{Binding .}" />
                                 </Border.GestureRecognizers>
 
                                 <Grid RowDefinitions="Auto, Auto, Auto" Padding="15">
-                                    <Label Grid.Row="0" Text="{Binding Title}" FontSize="18" FontAttributes="Bold" TextColor="{StaticResource Gray900}" MaxLines="2" LineBreakMode="TailTruncation" />
+                                    <Label Grid.Row="0" Text="{Binding Title}" 
+                                   FontSize="18" FontAttributes="Bold" 
+                                   TextColor="{StaticResource Gray900}" 
+                                   MaxLines="2" LineBreakMode="TailTruncation" />
 
                                     <HorizontalStackLayout Grid.Row="1" Spacing="8" Margin="0,8">
                                         <Label Text="{Binding PublishDate, StringFormat='{0:dd MMM HH:mm}'}" FontSize="11" TextColor="{StaticResource Gray500}" VerticalOptions="Center" />
                                         <BoxView WidthRequest="1" HeightRequest="12" Color="{StaticResource Gray300}" VerticalOptions="Center"/>
                                         <Label Text="{Binding SiteName}" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource Primary}" VerticalOptions="Center" />
+
                                         <Label Text="💾" IsVisible="{Binding IsDownloaded}" FontSize="12" VerticalOptions="Center" />
-                                        <Label Text="👁️" IsVisible="{Binding IsRead}" FontSize="12" VerticalOptions="Center" />
+                                        <Label Text="✔️" IsVisible="{Binding IsRead}" FontSize="12" VerticalOptions="Center" />
                                     </HorizontalStackLayout>
 
                                     <Label Grid.Row="2" Text="{Binding Summary}" FontSize="14" TextColor="{StaticResource Gray600}" MaxLines="3" LineBreakMode="TailTruncation" />

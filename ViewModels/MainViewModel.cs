@@ -22,6 +22,7 @@ namespace Rss_feeder_prout.ViewModels
         public ObservableCollection<FeedPlaylist> AllPlaylists { get; } = new ObservableCollection<FeedPlaylist>();
         private ObservableCollection<RssItem> _allRssItems = new ObservableCollection<RssItem>();
         private ObservableCollection<RssItem> _filteredRssItems = new ObservableCollection<RssItem>();
+        public ICommand MarkAllAsReadCommand => new Command(async () => await MarkAllAsReadAsync());
 
         private CancellationTokenSource _syncCts;
 
@@ -30,8 +31,48 @@ namespace Rss_feeder_prout.ViewModels
             get => _filteredRssItems;
             set => SetProperty(ref _filteredRssItems, value);
         }
+        private string _currentFilter = "All";  // "All", "Unread", "Read"
+        private string _currentSort = "Newest"; // "Newest", "Oldest"
+        private bool _isSearchVisible;
+
+        public bool IsSearchVisible
+        {
+            get => _isSearchVisible;
+            set => SetProperty(ref _isSearchVisible, value);
+        }
+
+        public ICommand ToggleSearchCommand => new Command(() => IsSearchVisible = !IsSearchVisible);
+
+        public ICommand FilterCommand => new Command<string>((filterType) =>
+        {
+            _currentFilter = filterType;
+            ApplyFilters();
+        });
+
+        public ICommand SortCommand => new Command<string>((sortType) =>
+        {
+            _currentSort = sortType;
+            ApplyFilters();
+        });
 
         public ObservableCollection<FeedSite> CurrentSites { get; } = new ObservableCollection<FeedSite>();
+
+        // Classe pour gérer les groupes
+        public class RssGroup : List<RssItem>
+        {
+            public string Name { get; private set; }
+            public RssGroup(string name, List<RssItem> items) : base(items)
+            {
+                Name = name;
+            }
+        }
+
+        private ObservableCollection<RssGroup> _groupedRssItems = new ObservableCollection<RssGroup>();
+public ObservableCollection<RssGroup> GroupedRssItems
+{
+    get => _groupedRssItems;
+    set => SetProperty(ref _groupedRssItems, value);
+}
 
         private string _title = "Playlists";
         public string Title
@@ -243,6 +284,77 @@ namespace Rss_feeder_prout.ViewModels
         }
 
         // --- Logique de Chargement Initial (Inchangée) ---
+
+        private async Task MarkAllAsReadAsync()
+        {
+            if (FilteredRssItems == null || !FilteredRssItems.Any())
+                return;
+
+            // 1. Demander confirmation
+            bool confirm = await Application.Current.MainPage.DisplayAlert(
+                "Lecture",
+                $"Marquer les {FilteredRssItems.Count} articles comme lus ?",
+                "Oui", "Non");
+
+            if (!confirm) return;
+
+            try
+            {
+                // 2. Modifier en base de données et dans la liste
+                foreach (var item in FilteredRssItems.ToList()) // .ToList() pour éviter les erreurs de modification de collection
+                {
+                    if (!item.IsRead)
+                    {
+                        item.IsRead = true;
+                        // Sauvegarde SQL via ton service existant
+                        await _dbService.UpdateRssItemAsync(item);
+                    }
+                }
+
+                // 3. Appliquer les filtres pour rafraîchir l'écran
+                // Si l'utilisateur est sur le filtre "Non lus", les articles disparaîtront automatiquement
+                ApplyFilters();
+
+                Debug.WriteLine("✅ Tous les articles affichés ont été marqués comme lus.");
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"❌ Erreur lors du marquage : {ex.Message}");
+            }
+        }
+
+        private void ApplyFilters()
+        {
+            // On part de la liste complète chargée depuis la DB ou le RSS
+            var query = _allRssItems.AsEnumerable();
+
+            // 1. Filtrage par texte (Recherche)
+            if (!string.IsNullOrWhiteSpace(SearchText))
+            {
+                string search = RemoveAccents(SearchText.ToLowerInvariant());
+                query = query.Where(item =>
+                    RemoveAccents(item.Title?.ToLowerInvariant() ?? "").Contains(search) ||
+                    RemoveAccents(item.Summary?.ToLowerInvariant() ?? "").Contains(search));
+            }
+
+            // 2. Filtrage par statut (Filtre Chips)
+            query = _currentFilter switch
+            {
+                "Unread" => query.Where(x => !x.IsRead),
+                "Read" => query.Where(x => x.IsRead),
+                _ => query // "All"
+            };
+
+            // 3. Tri (Nouveau vs Ancien)
+            query = _currentSort switch
+            {
+                "Oldest" => query.OrderBy(x => x.PublishDate),
+                "Newest" or _ => query.OrderByDescending(x => x.PublishDate)
+            };
+
+            // Mise à jour de la collection affichée à l'écran
+            FilteredRssItems = new ObservableCollection<RssItem>(query.ToList());
+        }
 
         public void StopSync()
         {
@@ -518,6 +630,7 @@ namespace Rss_feeder_prout.ViewModels
             }
         }
 
+        
 
         // --- Logique de Chargement et de Rafraîchissement (Cœur) (Inchangée) ---
         private async Task ExecuteLoadFeedCommand()
@@ -731,38 +844,45 @@ namespace Rss_feeder_prout.ViewModels
 
             try
             {
-                // 1. Nettoyage de l'URL (supprime les espaces blancs accidentels)
                 string cleanUrl = item.Link.Trim();
 
-                // 2. Validation du format de l'URI
                 if (!Uri.TryCreate(cleanUrl, UriKind.Absolute, out Uri uriResult))
                 {
-                    await Shell.Current.DisplayAlert("Lien Invalide", "L'adresse Web de cet article est mal formée.", "OK");
+                    await Shell.Current.DisplayAlert("Lien Invalide", "L'adresse Web est mal formée.", "OK");
                     return;
                 }
 
-                // 3. Vérification si le système peut ouvrir le lien
-                bool canOpen = await Launcher.Default.CanOpenAsync(uriResult);
-                if (canOpen)
+                // --- OUVERTURE DANS LE NAVIGATEUR INTERNE ---
+                // SystemPreferred ouvre Chrome Custom Tabs (Android) ou Safari View Controller (iOS)
+                // Cela permet de garder l'utilisateur "dans" ton app avec un bouton "Fermer" en haut.
+                await Browser.Default.OpenAsync(uriResult, new BrowserLaunchOptions
                 {
-                    await Launcher.Default.OpenAsync(uriResult);
+                    LaunchMode = BrowserLaunchMode.SystemPreferred,
+                    TitleMode = BrowserTitleMode.Show,
+                    PreferredToolbarColor = Colors.Black, // Tu peux mettre la couleur de ton thème ici
+                    PreferredControlColor = Colors.White
+                });
 
-                    // 4. Marquage comme lu en arrière-plan
-                    if (!item.IsRead)
-                    {
-                        item.IsRead = true;
-                        _ = Task.Run(async () => await _dbService.MarkItemAsReadAsync(item));
-                    }
-                }
-                else
+                // --- MARQUAGE COMME LU ---
+                if (!item.IsRead)
                 {
-                    await Shell.Current.DisplayAlert("Action Impossible", "Aucun navigateur trouvé pour ouvrir ce lien.", "OK");
+                    item.IsRead = true;
+                    // Mise à jour en arrière-plan pour ne pas ralentir l'ouverture
+                    _ = Task.Run(async () => await _dbService.MarkItemAsReadAsync(item));
                 }
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"[LAUNCHER ERROR] {ex.Message}");
-                await Shell.Current.DisplayAlert("Erreur", "Impossible d'ouvrir le navigateur.", "OK");
+                Debug.WriteLine($"[BROWSER ERROR] {ex.Message}");
+                // Si le mode interne échoue, on peut tenter une dernière fois en externe
+                try
+                {
+                    await Launcher.Default.OpenAsync(item.Link);
+                }
+                catch
+                {
+                    await Shell.Current.DisplayAlert("Erreur", "Impossible d'ouvrir le lien.", "OK");
+                }
             }
         }
 

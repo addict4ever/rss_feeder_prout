@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:vm="clr-namespace:Rss_feeder_prout.ViewModels"
              x:Class="Rss_feeder_prout.Views.DatabaseManagerPage"
+             xmlns:views="clr-namespace:Rss_feeder_prout.Views"
              Shell.NavBarIsVisible="False"
              Shell.PresentationMode="NotAnimated"
              BackgroundColor="{StaticResource Gray950}">
@@ -10,8 +11,24 @@
     <ScrollView>
         <StackLayout Padding="20" Spacing="20">
 
-            <Label Text="Administration de la Base de Données" 
-                   FontSize="Title" FontAttributes="Bold" TextColor="{StaticResource Primary}"/>
+            <Grid>
+                <VerticalStackLayout>
+                </VerticalStackLayout>
+
+                <Grid VerticalOptions="Start" Margin="0,50,0,10">
+
+                    <Label 
+            Text="Administration de la Base de Données" 
+            FontSize="Title" 
+            FontAttributes="Bold" 
+            TextColor="{StaticResource Primary}"
+            HorizontalOptions="Center"
+            VerticalOptions="Center"
+            HorizontalTextAlignment="Center" />
+
+                    <views:HeaderView />
+                </Grid>
+            </Grid>
 
             <Border StrokeShape="RoundRectangle 10" BackgroundColor="#2C3E50" Padding="15">
                 <VerticalStackLayout Spacing="5">

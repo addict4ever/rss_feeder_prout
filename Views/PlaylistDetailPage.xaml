@@ -5,6 +5,7 @@
              xmlns:vm="clr-namespace:Rss_feeder_prout.ViewModels"
              xmlns:converters="clr-namespace:Rss_feeder_prout.Converters"
              xmlns:models="clr-namespace:Rss_feeder_prout.Models"
+             xmlns:views="clr-namespace:Rss_feeder_prout.Views"
              x:DataType="vm:PlaylistDetailViewModel"
              Title="{Binding CurrentPlaylist.Name, StringFormat='Configuration : {0}'}"
              Shell.NavBarIsVisible="False"
@@ -24,6 +25,7 @@
             </ToolbarItem.IsEnabled>
         </ToolbarItem>
     </ContentPage.ToolbarItems>
+
 
     <Grid RowDefinitions="*">
 
@@ -97,67 +99,75 @@
                            TextColor="{StaticResource Gray900}"/>
                 </HorizontalStackLayout>
 
-                <CollectionView ItemsSource="{Binding Sites}"
-                                SelectionMode="None"
-                                HeightRequest="{Binding Sites.Count, Converter={StaticResource ListHeightConverter}, ConverterParameter=85}">
-                    <CollectionView.ItemTemplate>
-                        <DataTemplate x:DataType="models:FeedSite">
-                            <SwipeView>
-                                <SwipeView.RightItems>
-                                    <SwipeItems Mode="Reveal">
-                                        <SwipeItem Text="Supprimer"
-                                                   BackgroundColor="Red"
-                                                   Command="{Binding Source={RelativeSource AncestorType={x:Type vm:PlaylistDetailViewModel}}, Path=DeleteSiteCommand}"
-                                                   CommandParameter="{Binding .}"/>
-                                    </SwipeItems>
-                                </SwipeView.RightItems>
+                <Grid RowDefinitions="Auto, *">
 
-                                <Border Margin="0, 4" 
-                                        Padding="12" 
-                                        StrokeShape="RoundRectangle 12" 
-                                        BackgroundColor="{StaticResource White}"
-                                        StrokeThickness="0.5"
-                                        Stroke="{StaticResource Gray200}">
-                                    <Border.Shadow>
-                                        <Shadow Brush="Black" Offset="0,2" Radius="3" Opacity="0.05" />
-                                    </Border.Shadow>
+                    <VerticalStackLayout Grid.Row="0" Padding="10">
+                    </VerticalStackLayout>
 
-                                    <Grid ColumnDefinitions="Auto, *, Auto" ColumnSpacing="15">
-                                        <Border Grid.Column="0" 
-                                                StrokeShape="RoundRectangle 8" 
-                                                HeightRequest="45" WidthRequest="45" 
-                                                BackgroundColor="{StaticResource Gray100}" 
-                                                StrokeThickness="0">
-                                            <Image Source="{Binding IconUrl}" 
-                                                   Aspect="AspectFit" 
-                                                   Margin="8"/>
-                                        </Border>
+                    <CollectionView Grid.Row="1"
+                    ItemsSource="{Binding Sites}"
+                    SelectionMode="None"
+                    VerticalOptions="FillAndExpand">
 
-                                        <VerticalStackLayout Grid.Column="1" VerticalOptions="Center">
-                                            <Label Text="{Binding Name}" 
-                                                   FontSize="15" 
-                                                   FontAttributes="Bold" 
-                                                   TextColor="{StaticResource Gray900}"
-                                                   MaxLines="1"
-                                                   LineBreakMode="TailTruncation"/>
-                                            <Label Text="{Binding FeedUrl}" 
-                                                   FontSize="12" 
-                                                   TextColor="{StaticResource Gray500}"
-                                                   MaxLines="1"
-                                                   LineBreakMode="MiddleTruncation"/>
-                                        </VerticalStackLayout>
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate x:DataType="models:FeedSite">
+                                <SwipeView>
+                                    <SwipeView.RightItems>
+                                        <SwipeItems Mode="Reveal">
+                                            <SwipeItem Text="Supprimer"
+                                       BackgroundColor="Red"
+                                       Command="{Binding Source={RelativeSource AncestorType={x:Type vm:PlaylistDetailViewModel}}, Path=DeleteSiteCommand}"
+                                       CommandParameter="{Binding .}"/>
+                                        </SwipeItems>
+                                    </SwipeView.RightItems>
 
-                                        <Label Grid.Column="2" Text="≡" 
-                                               TextColor="{StaticResource Gray300}" 
-                                               FontSize="24" 
-                                               VerticalOptions="Center" 
-                                               Margin="0,0,5,0"/>
-                                    </Grid>
-                                </Border>
-                            </SwipeView>
-                        </DataTemplate>
-                    </CollectionView.ItemTemplate>
-                </CollectionView>
+                                    <Border Margin="0, 4" 
+                            Padding="12" 
+                            StrokeShape="RoundRectangle 12" 
+                            BackgroundColor="{StaticResource White}"
+                            StrokeThickness="0.5"
+                            Stroke="{StaticResource Gray200}">
+                                        <Border.Shadow>
+                                            <Shadow Brush="Black" Offset="0,2" Radius="3" Opacity="0.05" />
+                                        </Border.Shadow>
+
+                                        <Grid ColumnDefinitions="Auto, *, Auto" ColumnSpacing="15">
+                                            <Border Grid.Column="0" 
+                                    StrokeShape="RoundRectangle 8" 
+                                    HeightRequest="45" WidthRequest="45" 
+                                    BackgroundColor="{StaticResource Gray100}" 
+                                    StrokeThickness="0">
+                                                <Image Source="{Binding IconUrl}" 
+                                       Aspect="AspectFit" 
+                                       Margin="8"/>
+                                            </Border>
+
+                                            <VerticalStackLayout Grid.Column="1" VerticalOptions="Center">
+                                                <Label Text="{Binding Name}" 
+                                       FontSize="15" 
+                                       FontAttributes="Bold" 
+                                       TextColor="{StaticResource Gray900}"
+                                       MaxLines="1"
+                                       LineBreakMode="TailTruncation"/>
+                                                <Label Text="{Binding FeedUrl}" 
+                                       FontSize="12" 
+                                       TextColor="{StaticResource Gray500}"
+                                       MaxLines="1"
+                                       LineBreakMode="MiddleTruncation"/>
+                                            </VerticalStackLayout>
+
+                                            <Label Grid.Column="2" Text="≡" 
+                                   TextColor="{StaticResource Gray300}" 
+                                   FontSize="24" 
+                                   VerticalOptions="Center" 
+                                   Margin="0,0,5,0"/>
+                                        </Grid>
+                                    </Border>
+                                </SwipeView>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                </Grid>
 
             </VerticalStackLayout>
         </ScrollView>

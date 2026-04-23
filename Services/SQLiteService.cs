@@ -70,7 +70,6 @@ namespace Rss_feeder_prout.Services
             defaultSites.Add(new FeedSite { Name = "Frandroid", FeedUrl = "https://www.frandroid.com/feed", PlaylistId = playlistActuTech.Id });
             defaultSites.Add(new FeedSite { Name = "Korben", FeedUrl = "https://korben.info/feed", PlaylistId = playlistActuTech.Id });
             defaultSites.Add(new FeedSite { Name = "Les Numériques", FeedUrl = "https://www.lesnumeriques.com/rss.xml", PlaylistId = playlistActuTech.Id });
-            defaultSites.Add(new FeedSite { Name = "Next INpact", FeedUrl = "https://www.nextinpact.com/rss/news.xml", PlaylistId = playlistActuTech.Id });
 
             // --- 2. CYBERSÉCURITÉ ---
             var playlistSecu = new FeedPlaylist { Name = "Cybersécurité", IsActive = true };
@@ -145,7 +144,6 @@ namespace Rss_feeder_prout.Services
             defaultSites.Add(new FeedSite { Name = "TVA Nouvelles (Actualités)", FeedUrl = "https://www.tvanouvelles.ca/actualites/rss.xml", PlaylistId = playlistQuebec.Id });
             defaultSites.Add(new FeedSite { Name = "Journal de Montréal", FeedUrl = "https://www.journaldemontreal.com/rss.xml", PlaylistId = playlistQuebec.Id });
             defaultSites.Add(new FeedSite { Name = "Les Affaires", FeedUrl = "https://www.lesaffaires.com/rss", PlaylistId = playlistQuebec.Id });
-            defaultSites.Add(new FeedSite { Name = "Direction Informatique", FeedUrl = "https://www.directioninformatique.com/feed", PlaylistId = playlistQuebec.Id });
             defaultSites.Add(new FeedSite { Name = "Québec Science", FeedUrl = "https://www.quebecscience.qc.ca/feed/", PlaylistId = playlistQuebec.Id });
 
             // --- 7. PROGRAMMATION & DÉVELOPPEMENT ---
@@ -250,6 +248,12 @@ namespace Rss_feeder_prout.Services
             
             // Sauvegarder tous les sites
             await _database.InsertAllAsync(defaultSites);
+        }
+
+        public async Task<int> UpdateRssItemAsync(RssItem item)
+        {
+            await Init();
+            return await _database.UpdateAsync(item);
         }
 
 
