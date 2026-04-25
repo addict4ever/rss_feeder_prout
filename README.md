@@ -16,7 +16,9 @@ Lecteur RSS moderne sous .NET MAUI 9.0 offrant une expérience Offline-First. G�
 
 | Centre de contrôle (Main) | Éditeur Markdown | Section À propos |
 | :---: | :---: | :---: |
-| <img src="Screenshot_20260424-151300.png" width="200" alt="Main Page"> | <img src="Screenshot_20260424-151309.png" width="200" alt="Editor Page"> | <img src="Screenshot_20260424-151315.png" width="200" alt="About Page"> |
+| <img src="Screenshot_20260424-150809.png" width="200" alt="Main Page"> | <img src="Screenshot_20260424-150909.png" width="200" alt="Editor Page"> | <img src="Screenshot_20260424-150925.png" width="200" alt="About Page"> |
+| <img src="Screenshot_20260424-150819.png" width="200" alt="Log Transcription"> | <img src="Screenshot_20260424-150918.png" width="200" alt="Notes List"> | <img src="Screenshot_20260424-150837.png" width="200" alt="Actions Audio"> |
+| <img src="Screenshot_20260424-150831.png" width="200" alt="Bibliothèque"> | | |
 
 ---
 
