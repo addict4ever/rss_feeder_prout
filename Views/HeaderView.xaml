@@ -1,0 +1,38 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="Rss_feeder_prout.Views.HeaderView">
+
+    <Grid Margin="0,50,0,10" BackgroundColor="Transparent" HorizontalOptions="FillAndExpand">
+
+        <Grid x:Name="MenuButton"
+              HorizontalOptions="End"
+              VerticalOptions="Center"
+              Margin="0,0,20,0"
+              HeightRequest="70"
+              WidthRequest="70"
+              IsVisible="False">
+            <Grid.GestureRecognizers>
+                <TapGestureRecognizer Tapped="OnMenuButtonClicked" />
+            </Grid.GestureRecognizers>
+
+            <Ellipse Fill="Yellow" Stroke="Black" StrokeThickness="2" />
+
+            <HorizontalStackLayout HorizontalOptions="Center" VerticalOptions="Start" Margin="0,18,0,0" Spacing="12">
+                <Ellipse Fill="Black" HeightRequest="8" WidthRequest="8" />
+                <Ellipse Fill="Black" HeightRequest="8" WidthRequest="8" />
+            </HorizontalStackLayout>
+
+            <Path x:Name="SmileyMouth"
+                  Data="M 20,45 Q 35,60 50,45"
+                  Stroke="Black"
+                  StrokeThickness="3"
+                  StrokeLineCap="Round"
+                  HorizontalOptions="Center" />
+
+            <Grid.Shadow>
+                <Shadow Brush="Black" Offset="5,5" Radius="10" Opacity="0.3" />
+            </Grid.Shadow>
+        </Grid>
+    </Grid>
+</ContentView>

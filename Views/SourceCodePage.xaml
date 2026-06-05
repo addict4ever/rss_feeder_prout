@@ -1,0 +1,34 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="Rss_feeder_prout.Views.SourceCodePage"
+             BackgroundColor="#1e1e1e">
+
+    <Grid RowDefinitions="Auto, Auto, *, Auto">
+        <HorizontalStackLayout Grid.Row="0" Spacing="5" Padding="5" BackgroundColor="#2d2d2d">
+            <Entry x:Name="FindEntry" Placeholder="Trouver..." WidthRequest="150" TextColor="White"/>
+            <Entry x:Name="ReplaceEntry" Placeholder="Remplacer..." WidthRequest="150" TextColor="White"/>
+            <Button Text="Replace" Clicked="OnReplaceClicked" FontSize="10"/>
+        </HorizontalStackLayout>
+
+        <FlexLayout Grid.Row="1" JustifyContent="SpaceEvenly" BackgroundColor="#333" Padding="5">
+            <Button Text="Code" Clicked="ShowEditor" Style="{StaticResource TabBtnStyle}"/>
+            <Button Text="Preview" Clicked="ShowPreview" Style="{StaticResource TabBtnStyle}"/>
+            <Button Text="Console" Clicked="ShowConsole" Style="{StaticResource TabBtnStyle}"/>
+            <Button Text="Format" Clicked="OnPrettifyClicked" BackgroundColor="#512bd4"/>
+        </FlexLayout>
+
+        <Grid Grid.Row="2">
+            <WebView x:Name="CodeWebView" HorizontalOptions="Fill" VerticalOptions="Fill" />
+            <WebView x:Name="PreviewWebView" IsVisible="False" BackgroundColor="White"/>
+            <ScrollView x:Name="ConsoleView" IsVisible="False" BackgroundColor="Black" Padding="10">
+                <Label x:Name="ConsoleLogLabel" TextColor="LimeGreen" FontFamily="monospace" FontSize="10"/>
+            </ScrollView>
+        </Grid>
+
+        <HorizontalStackLayout Grid.Row="3" HorizontalOptions="Center" Spacing="20" Padding="10">
+            <Button Text="💾 Export .html" Clicked="OnExportClicked" BackgroundColor="DarkGreen"/>
+            <Button Text="Fermer" Clicked="OnCloseClicked" BackgroundColor="#cc0000"/>
+        </HorizontalStackLayout>
+    </Grid>
+</ContentPage>
