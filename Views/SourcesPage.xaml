@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:Rss_feeder_prout.ViewModels"
+             xmlns:controls="clr-namespace:Rss_feeder_prout.Controls"
+             x:Class="Rss_feeder_prout.Views.SourcesPage"
+             Shell.NavBarIsVisible="False">
+
+    <Grid RowDefinitions="Auto,*">
+
+        <!-- En-tête -->
+        <Grid Grid.Row="0" Padding="{DynamicResource HeaderPadding}" ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="8">
+            <controls:IconButton Grid.Column="0" Icon="back" Command="{Binding BackCommand}" />
+            <VerticalStackLayout Grid.Column="1" VerticalOptions="Center" Spacing="0" Margin="4,0">
+                <Label Text="{Binding Title}" Style="{StaticResource HeaderTitle}" />
+                <Label Text="{Binding Subtitle}" Style="{StaticResource Caption}" />
+            </VerticalStackLayout>
+            <controls:IconButton Grid.Column="2" Icon="sync" IconColor="{DynamicResource Accent}" Command="{Binding SyncPlaylistCommand}" />
+            <controls:IconButton Grid.Column="3" Icon="settings" Command="{Binding ManageCommand}" />
+        </Grid>
+
+        <RefreshView Grid.Row="1" IsRefreshing="{Binding IsRefreshing}" Command="{Binding RefreshCommand}">
+            <CollectionView ItemsSource="{Binding Sites}" SelectionMode="None" Margin="6,0">
+                <CollectionView.ItemsLayout>
+                    <GridItemsLayout Orientation="Vertical" Span="2" HorizontalItemSpacing="10" VerticalItemSpacing="10" />
+                </CollectionView.ItemsLayout>
+
+                <CollectionView.Header>
+                    <VerticalStackLayout Padding="6,0,6,12" Spacing="10">
+                        <controls:SyncBannerView Margin="-14,0" />
+
+                        <!-- Tout afficher -->
+                        <Border Style="{StaticResource Card}" Padding="16,14">
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding ShowAllCommand}" />
+                            </Border.GestureRecognizers>
+                            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14">
+                                <Border WidthRequest="46" HeightRequest="46" StrokeThickness="0" StrokeShape="RoundRectangle 15"
+                                        BackgroundColor="{Binding Playlist.AccentColor}">
+                                    <controls:IconView Icon="layers" Color="#1A0E05" Size="22" />
+                                </Border>
+                                <VerticalStackLayout Grid.Column="1" VerticalOptions="Center" Spacing="2">
+                                    <Label Text="Tous les articles" Style="{StaticResource CardTitle}" />
+                                    <Label Text="{Binding AllSubtitle}" Style="{StaticResource Caption}" />
+                                </VerticalStackLayout>
+                                <controls:IconView Grid.Column="2" Icon="chevron-right" Color="{DynamicResource TextMuted}" Size="18" />
+                            </Grid>
+                        </Border>
+
+                        <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                            <Button Grid.Column="0" Text="Non lus seulement" Style="{StaticResource SecondaryButton}" FontSize="13.5" Command="{Binding ShowUnreadCommand}" />
+                            <Button Grid.Column="1" Text="Tout marquer lu" Style="{StaticResource SecondaryButton}" FontSize="13.5" Command="{Binding MarkAllReadCommand}" />
+                        </Grid>
+
+                        <Label Text="Sources" Style="{StaticResource SectionTitle}" Margin="4,10,4,0" />
+                    </VerticalStackLayout>
+                </CollectionView.Header>
+
+                <CollectionView.ItemTemplate>
+                    <DataTemplate>
+                        <Border Style="{StaticResource Card}" Padding="14" Margin="6,0" HeightRequest="152">
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type vm:SourcesViewModel}}, Path=OpenSiteCommand}"
+                                                      CommandParameter="{Binding .}" />
+                            </Border.GestureRecognizers>
+                            <Grid RowDefinitions="Auto,*,Auto" RowSpacing="8">
+                                <Grid ColumnDefinitions="Auto,*,Auto">
+                                    <Grid WidthRequest="44" HeightRequest="44">
+                                        <Border StrokeThickness="0" StrokeShape="RoundRectangle 13" BackgroundColor="{DynamicResource Surface2}">
+                                            <Label Text="{Binding Initial}" FontFamily="OpenSansSemibold" FontSize="18"
+                                                   TextColor="{DynamicResource TextSecondary}" HorizontalOptions="Center" VerticalOptions="Center" />
+                                        </Border>
+                                        <Border StrokeThickness="0" StrokeShape="RoundRectangle 13" IsVisible="{Binding HasIcon}" BackgroundColor="White" Padding="5">
+                                            <Image Source="{Binding DisplayIcon}" Aspect="AspectFit" />
+                                        </Border>
+                                    </Grid>
+                                    <Border Grid.Column="2" Style="{StaticResource Pill}" BackgroundColor="{DynamicResource Accent}" IsVisible="{Binding HasUnread}" VerticalOptions="Start">
+                                        <Label Text="{Binding UnreadText}" FontFamily="OpenSansSemibold" FontSize="12" TextColor="{DynamicResource OnAccent}" />
+                                    </Border>
+                                </Grid>
+                                <Label Grid.Row="1" Text="{Binding DisplayName}" Style="{StaticResource CardTitle}" FontSize="15"
+                                       MaxLines="2" LineBreakMode="TailTruncation" VerticalOptions="Start" />
+                                <Grid Grid.Row="2" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="6">
+                                    <Ellipse Grid.Column="0" WidthRequest="8" HeightRequest="8" Fill="{Binding HealthColor}" VerticalOptions="Center" />
+                                    <Label Grid.Column="1" Text="{Binding CountText}" Style="{StaticResource Caption}" FontSize="12" VerticalOptions="Center" />
+                                    <controls:IconButton Grid.Column="2" Icon="more" IsFlat="True" Size="28" IconSize="16" IconColor="{DynamicResource TextMuted}"
+                                                         Command="{Binding Source={RelativeSource AncestorType={x:Type vm:SourcesViewModel}}, Path=SiteMenuCommand}"
+                                                         CommandParameter="{Binding .}" />
+                                </Grid>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+
+                <CollectionView.EmptyView>
+                    <VerticalStackLayout Padding="40" Spacing="12">
+                        <controls:IconView Icon="rss" Size="44" Color="{DynamicResource TextMuted}" />
+                        <Label Text="Aucune source" Style="{StaticResource CardTitle}" HorizontalOptions="Center" />
+                        <Button Text="Ajouter des sources" Style="{StaticResource PrimaryButton}" Command="{Binding ManageCommand}" />
+                    </VerticalStackLayout>
+                </CollectionView.EmptyView>
+            </CollectionView>
+        </RefreshView>
+    </Grid>
+</ContentPage>

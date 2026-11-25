@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:controls="clr-namespace:Rss_feeder_prout.Controls"
+             x:Class="Rss_feeder_prout.Controls.SyncBannerView"
+             IsVisible="{Binding IsRunning}">
+
+    <!-- Bandeau NON BLOQUANT : on peut continuer à lire pendant la synchronisation -->
+    <Border Margin="14,4,14,6"
+            Padding="14,10"
+            BackgroundColor="{DynamicResource Surface2}"
+            Stroke="{DynamicResource BorderColor}"
+            StrokeThickness="1"
+            StrokeShape="RoundRectangle 16">
+        <Grid ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,Auto" ColumnSpacing="12" RowSpacing="8">
+            <ActivityIndicator Grid.Row="0" Grid.Column="0" IsRunning="{Binding IsRunning}" WidthRequest="20" HeightRequest="20" VerticalOptions="Center" />
+            <VerticalStackLayout Grid.Row="0" Grid.Column="1" Spacing="1" VerticalOptions="Center">
+                <Label Text="{Binding StatusTitle}" FontFamily="OpenSansSemibold" FontSize="14" />
+                <Label Text="{Binding StatusText}" Style="{StaticResource Caption}" MaxLines="1" LineBreakMode="TailTruncation" />
+            </VerticalStackLayout>
+            <controls:IconButton Grid.Row="0" Grid.Column="2" Icon="close" Size="34" IconSize="16" Command="{Binding CancelCommand}" />
+            <ProgressBar Grid.Row="1" Grid.ColumnSpan="3" Progress="{Binding Progress}" HeightRequest="4" />
+        </Grid>
+    </Border>
+</ContentView>

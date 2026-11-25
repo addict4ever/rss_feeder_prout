@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:controls="clr-namespace:Rss_feeder_prout.Controls"
+             x:Class="Rss_feeder_prout.Views.ArticleListPage"
+             Shell.NavBarIsVisible="False">
+
+    <Grid RowDefinitions="Auto,Auto,Auto,Auto,*">
+
+        <!-- En-tête -->
+        <Grid Grid.Row="0" Padding="{DynamicResource HeaderPadding}" ColumnDefinitions="Auto,*,Auto,Auto,Auto" ColumnSpacing="8">
+            <controls:IconButton Grid.Column="0" Icon="back" Command="{Binding BackCommand}" />
+            <VerticalStackLayout Grid.Column="1" VerticalOptions="Center" Spacing="0" Margin="4,0">
+                <Label Text="{Binding Title}" Style="{StaticResource HeaderTitle}" />
+                <Label Text="{Binding CountText}" Style="{StaticResource Caption}" MaxLines="1" LineBreakMode="TailTruncation" />
+            </VerticalStackLayout>
+            <controls:IconButton Grid.Column="2" Icon="search" Command="{Binding ToggleSearchCommand}" />
+            <controls:IconButton Grid.Column="3" Icon="check-all" Command="{Binding MarkAllAsReadCommand}" />
+            <controls:IconButton Grid.Column="4" Icon="more-v" Command="{Binding MenuCommand}" />
+        </Grid>
+
+        <!-- Recherche -->
+        <Border Grid.Row="1" Style="{StaticResource SearchField}" Margin="14,0,14,8" IsVisible="{Binding IsSearchVisible}">
+            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
+                <controls:IconView Icon="search" Color="{DynamicResource TextMuted}" Size="18" />
+                <Entry Grid.Column="1" Placeholder="Filtrer ces articles…" Text="{Binding SearchText}" ClearButtonVisibility="WhileEditing" />
+            </Grid>
+        </Border>
+
+        <!-- Filtres -->
+        <ScrollView Grid.Row="2" Orientation="Horizontal" HorizontalScrollBarVisibility="Never">
+            <HorizontalStackLayout Spacing="8" Padding="14,2,14,8">
+                <controls:ChipView Text="Tout" IsSelected="{Binding IsFilterAll}" Command="{Binding FilterCommand}" CommandParameter="All" />
+                <controls:ChipView Text="Non lus" Icon="mail-unread" IsSelected="{Binding IsFilterUnread}" Command="{Binding FilterCommand}" CommandParameter="Unread" />
+                <controls:ChipView Text="Lus" Icon="eye" IsSelected="{Binding IsFilterRead}" Command="{Binding FilterCommand}" CommandParameter="Read" />
+                <controls:ChipView Text="Hors-ligne" Icon="check-circle" IsSelected="{Binding IsFilterOffline}" Command="{Binding FilterCommand}" CommandParameter="Offline" />
+                <controls:ChipView Text="Favoris" Icon="star" IsSelected="{Binding IsFilterFavorites}" Command="{Binding FilterCommand}" CommandParameter="Favorites" />
+                <BoxView WidthRequest="1" HeightRequest="22" VerticalOptions="Center" />
+                <controls:ChipView Text="En ligne" Icon="globe" IsSelected="{Binding ShowOnline}" Command="{Binding ToggleOnlineCommand}" />
+                <controls:ChipView Text="{Binding SortText}" Icon="sort" Command="{Binding SortCommand}" />
+            </HorizontalStackLayout>
+        </ScrollView>
+
+        <!-- Bandeaux : synchro + articles en ligne -->
+        <VerticalStackLayout Grid.Row="3" Spacing="0">
+            <controls:SyncBannerView />
+
+            <Border Style="{StaticResource Inset}" Margin="14,0,14,6" BackgroundColor="{DynamicResource InfoSoft}" IsVisible="{Binding IsLoadingOnline}">
+                <HorizontalStackLayout Spacing="10">
+                    <ActivityIndicator IsRunning="{Binding IsLoadingOnline}" WidthRequest="16" HeightRequest="16" Color="{DynamicResource Info}" />
+                    <Label Text="Lecture des flux en ligne…" TextColor="{DynamicResource Info}" FontSize="13" VerticalOptions="Center" />
+                </HorizontalStackLayout>
+            </Border>
+
+            <Border Style="{StaticResource Inset}" Margin="14,0,14,6" BackgroundColor="{DynamicResource InfoSoft}" IsVisible="{Binding HasOnline}">
+                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+                    <controls:IconView Icon="globe" Color="{DynamicResource Info}" Size="18" />
+                    <Label Grid.Column="1" Text="{Binding OnlineText}" TextColor="{DynamicResource Info}" FontSize="13" VerticalOptions="Center" />
+                    <Button Grid.Column="2" Text="Enregistrer" Style="{StaticResource SmallButton}" BackgroundColor="{DynamicResource Info}"
+                            TextColor="White" Command="{Binding SaveAllOnlineCommand}" />
+                </Grid>
+            </Border>
+        </VerticalStackLayout>
+
+        <!-- Liste -->
+        <RefreshView Grid.Row="4" IsRefreshing="{Binding IsRefreshing}" Command="{Binding RefreshCommand}">
+            <CollectionView ItemsSource="{Binding Items}"
+                            SelectionMode="None"
+                            RemainingItemsThreshold="15"
+                            RemainingItemsThresholdReachedCommand="{Binding LoadMoreCommand}">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate>
+                        <controls:ArticleCardView />
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+
+                <CollectionView.EmptyView>
+                    <VerticalStackLayout Padding="40,60" Spacing="10">
+                        <controls:IconView Icon="inbox" Size="48" Color="{DynamicResource TextMuted}" />
+                        <Label Text="{Binding EmptyTitle}" Style="{StaticResource CardTitle}" HorizontalOptions="Center" />
+                        <Label Text="{Binding EmptyText}" Style="{StaticResource Caption}" HorizontalTextAlignment="Center" />
+                    </VerticalStackLayout>
+                </CollectionView.EmptyView>
+
+                <CollectionView.Footer>
+                    <BoxView HeightRequest="20" Color="Transparent" />
+                </CollectionView.Footer>
+            </CollectionView>
+        </RefreshView>
+
+        <ActivityIndicator Grid.Row="4" IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" VerticalOptions="Start" HorizontalOptions="Center" Margin="0,30,0,0" />
+    </Grid>
+</ContentPage>

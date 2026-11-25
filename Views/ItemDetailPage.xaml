@@ -1,48 +1,26 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:controls="clr-namespace:Rss_feeder_prout.Controls"
              x:Class="Rss_feeder_prout.Views.ItemDetailPage"
-             xmlns:vm="clr-namespace:Rss_feeder_prout.ViewModels"
-             x:DataType="vm:ItemDetailViewModel"
              Shell.NavBarIsVisible="False"
-             Shell.PresentationMode="NotAnimated"
-             BackgroundColor="{StaticResource Gray950}">
+             Shell.TabBarIsVisible="False">
 
-    <ContentPage.ToolbarItems>
-        <ToolbarItem Text="Ouvrir dans le navigateur"
-                     Command="{Binding OpenExternalCommand}"
-                     IconImageSource="{FontImageSource FontFamily=FAS, Glyph=&#xf0c1;, Size=22, Color={StaticResource White}}" />
-    </ContentPage.ToolbarItems>
-
-    <Grid RowDefinitions="*">
-
-        <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" 
-                           Grid.Row="0"
-                           Color="{StaticResource Primary}" 
-                           HorizontalOptions="Center" VerticalOptions="Center" />
-
-        <ScrollView Grid.Row="0" IsVisible="{Binding IsNotBusy}">
-            <VerticalStackLayout Padding="15">
-
-                <Label Text="{Binding RssItem.Title}" FontSize="Large" FontAttributes="Bold" TextColor="{StaticResource Primary}" Margin="0,0,0,5"/>
-                <Label Text="{Binding RssItem.PublishDate}" FontSize="Small" TextColor="{StaticResource Gray500}" Margin="0,0,0,10"/>
-
-                <Label Text="Contenu Telecharge" FontAttributes="Italic" Margin="0,10,0,0"
-                       IsVisible="{Binding RssItem.IsDownloaded}" TextColor="{StaticResource Secondary}"/>
-
-                <WebView Source="{Binding RssItem.ContentHtml}"
-                         HeightRequest="1000"
-                         IsVisible="{Binding RssItem.IsDownloaded}" />
-
-                <Label Text="Chargement du contenu en ligne..." FontAttributes="Italic" Margin="0,10,0,0"
-                       IsVisible="{Binding RssItem.IsNotDownloaded}" TextColor="{StaticResource Red}"/>
-
-                <WebView Source="{Binding RssItem.Link}"
-                         HeightRequest="1000"
-                         IsVisible="{Binding RssItem.IsNotDownloaded}" />
-
+    <!-- Page web d'origine dans l'application -->
+    <Grid RowDefinitions="Auto,Auto,*">
+        <Grid Grid.Row="0" Padding="{DynamicResource HeaderPadding}" ColumnDefinitions="Auto,*,Auto,Auto,Auto" ColumnSpacing="6">
+            <controls:IconButton Grid.Column="0" Icon="close" Command="{Binding BackCommand}" />
+            <VerticalStackLayout Grid.Column="1" VerticalOptions="Center" Spacing="0" Margin="4,0">
+                <Label Text="{Binding Title}" Style="{StaticResource HeaderTitle}" FontSize="15" />
+                <Label Text="{Binding Host}" Style="{StaticResource Caption}" />
             </VerticalStackLayout>
-        </ScrollView>
+            <controls:IconButton Grid.Column="2" Icon="refresh" Clicked="OnReloadClicked" />
+            <controls:IconButton Grid.Column="3" Icon="share" Command="{Binding ShareCommand}" />
+            <controls:IconButton Grid.Column="4" Icon="browser" Command="{Binding OpenExternalCommand}" />
+        </Grid>
 
+        <ProgressBar Grid.Row="1" Progress="{Binding Progress}" IsVisible="{Binding IsLoadingPage}" HeightRequest="3" />
+
+        <WebView Grid.Row="2" x:Name="PageWebView" Navigated="OnNavigated" Navigating="OnNavigating" />
     </Grid>
 </ContentPage>

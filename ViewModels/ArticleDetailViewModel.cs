@@ -1,272 +1,261 @@
-﻿using Rss_feeder_prout.Models;
+﻿using Rss_feeder_prout.Helpers;
+using Rss_feeder_prout.Models;
 using Rss_feeder_prout.Services;
 using Rss_feeder_prout.Views;
-using Microsoft.Maui.Controls;
 using System.Diagnostics;
-using System.Threading.Tasks;
-using System.Windows.Input;
-using System;
-using Microsoft.Maui.ApplicationModel;
-using System.Collections.Generic;
-using Microsoft.Maui.Networking; // 🎯 Ajout pour vérifier la connexion Internet
-using AngleSharp;
-using AngleSharp.Html.Dom;
-using AngleSharp.Dom;
-using AngleSharp.Html.Parser;
 using System.Text.RegularExpressions;
+using System.Windows.Input;
+using Microsoft.Maui.ApplicationModel;
+using Microsoft.Maui.ApplicationModel.DataTransfer;
+using Microsoft.Maui.Media;
+using Microsoft.Maui.Networking;
 
 namespace Rss_feeder_prout.ViewModels
 {
-    // 🎯 Important : L'interface IQueryAttributable permet de recevoir des paramètres d'URL
+    /// <summary>
+    /// Lecteur d'article.
+    ///  - lit les articles ENREGISTRÉS (hors-ligne ou résumé) ET les articles EN LIGNE non enregistrés
+    ///  - récupère l'article complet à la volée si besoin (sans l'enregistrer) puis propose de l'enregistrer
+    ///  - réglages de lecture (taille, thème, police), synthèse vocale, précédent / suivant, favoris, archives…
+    /// Paramètres : "Item" (RssItem), ou "itemId" (+ "IsArchive" = "true").
+    /// </summary>
     [QueryProperty(nameof(ItemId), "itemId")]
     [QueryProperty(nameof(IsArchive), "IsArchive")]
     public class ArticleDetailViewModel : BaseViewModel, IQueryAttributable
     {
         private readonly SQLiteService _dbService;
         private readonly RssService _rssService;
+        private readonly ReaderSession _session;
 
-        // --- Propriétés de Modèle ---
-        private string _isArchive;
+        private string? _extractedHtml;       // contenu complet récupéré à la volée (pas encore enregistré)
+        private string _currentBody = string.Empty;
+        private CancellationTokenSource? _loadCts;
+        private CancellationTokenSource? _speechCts;
+        private bool _loaded;
+
+        public ArticleDetailViewModel(SQLiteService dbService, RssService rssService, ReaderSession session)
+        {
+            _dbService = dbService;
+            _rssService = rssService;
+            _session = session;
+
+            ArchiveCommand = new Command(async () => await Archive());
+            ShareCommand = new Command(async () => await Share());
+            OpenExternalCommand = new Command(async () => await ExecuteOpenExternalCommand());
+            OpenInAppWebCommand = new Command(async () => await OpenInAppWebAsync());
+            DownloadContentCommand = new Command(async () => await ExecuteDownloadContentCommand());
+            ShowSourceCommand = new Command(async () => await ExecuteShowSourceCommand());
+            FavoriteCommand = new Command(async () => await ToggleFavoriteAsync());
+            ReadLaterCommand = new Command(async () => await ToggleReadLaterAsync());
+            ToggleReadCommand = new Command(async () => await ToggleReadAsync());
+            FontSmallerCommand = new Command(async () => { AppSettings.ReaderFontSize -= 1; await RenderAsync(); });
+            FontBiggerCommand = new Command(async () => { AppSettings.ReaderFontSize += 1; await RenderAsync(); });
+            ReaderSettingsCommand = new Command(async () => await ReaderSettingsAsync());
+            SpeakCommand = new Command(async () => await ToggleSpeechAsync());
+            NextCommand = new Command(async () => await MoveAsync(_session.MoveNext()), () => HasNext);
+            PreviousCommand = new Command(async () => await MoveAsync(_session.MovePrevious()), () => HasPrevious);
+            NextUnreadCommand = new Command(async () => await MoveAsync(_session.MoveNextUnread()));
+            CopyLinkCommand = new Command(async () => await CopyLinkAsync());
+            MoreCommand = new Command(async () => await MoreAsync());
+            ReloadFullCommand = new Command(async () => await LoadFullOnlineAsync(force: true));
+        }
+
+        // ------------------------------------------------------------------
+        // Propriétés
+        // ------------------------------------------------------------------
+
+        private string _isArchive = string.Empty;
         public string IsArchive
         {
             get => _isArchive;
-            set => SetProperty(ref _isArchive, value);
+            set => SetProperty(ref _isArchive, value ?? string.Empty);
         }
 
-        private RssItem _article;
-        public RssItem Article
-        {
-            get => _article;
-            set => SetProperty(ref _article, value);
-        }
-
-        private string _pageTitle;
-        public string Title
-        {
-            get => _pageTitle;
-            set => SetProperty(ref _pageTitle, value);
-        }
-
-        private string _itemId;
-        /// <summary>
-        /// Reçoit l'ID de l'article de l'URL de navigation (Shell)
-        /// </summary>
+        private string _itemId = string.Empty;
         public string ItemId
         {
             get => _itemId;
+            set => SetProperty(ref _itemId, value ?? string.Empty);
+        }
+
+        private RssItem? _article;
+        public RssItem? Article
+        {
+            get => _article;
             set
             {
-                SetProperty(ref _itemId, value);
-                // Le chargement est géré par ApplyQueryAttributes, mais on le garde ici en cas d'assignation directe
-                // Task.Run(LoadArticleById); 
+                if (SetProperty(ref _article, value))
+                    NotifyArticleState();
             }
         }
 
-        // --- Propriétés d'Affichage ---
+        public bool IsArchiveView => IsArchive == "true";
 
-        private string _contentHtml;
-        /// <summary>
-        /// Contenu HTML prêt à être affiché dans un WebView
-        /// </summary>
+        private HtmlWebViewSource? _htmlSource;
+        public HtmlWebViewSource? HtmlSource
+        {
+            get => _htmlSource;
+            set => SetProperty(ref _htmlSource, value);
+        }
+
+        private string _contentHtml = string.Empty;
+        /// <summary>HTML final affiché (conservé pour l'inspecteur de code source).</summary>
         public string ContentHtml
         {
             get => _contentHtml;
             set => SetProperty(ref _contentHtml, value);
         }
 
-        public ICommand OpenExternalCommand { get; }
-        public ICommand DownloadContentCommand { get; }
+        private bool _isLoadingContent;
+        public bool IsLoadingContent
+        {
+            get => _isLoadingContent;
+            set => SetProperty(ref _isLoadingContent, value);
+        }
 
+        private string _loadingText = string.Empty;
+        public string LoadingText
+        {
+            get => _loadingText;
+            set => SetProperty(ref _loadingText, value);
+        }
+
+        private bool _isSpeaking;
+        public bool IsSpeaking
+        {
+            get => _isSpeaking;
+            set
+            {
+                if (SetProperty(ref _isSpeaking, value))
+                    OnPropertyChanged(nameof(SpeakIcon));
+            }
+        }
+
+        public string SpeakIcon => IsSpeaking ? "stop" : "speaker";
+
+        public bool HasNext => !IsArchiveView && _session.HasNext;
+        public bool HasPrevious => !IsArchiveView && _session.HasPrevious;
+        public bool HasNavigation => !IsArchiveView && _session.Count > 1;
+        public string PositionText => IsArchiveView ? string.Empty : _session.PositionText;
+
+        public bool IsFavorite => Article?.IsFavorite == true;
+        public bool IsReadLater => Article?.IsReadLater == true;
+        public string FavoriteIconColorKey => IsFavorite ? "Warning" : "TextPrimary";
+
+        /// <summary>Le bouton "Enregistrer" est utile si l'article n'est pas complet hors-ligne.</summary>
+        public bool CanSave => Article != null && !IsArchiveView && (!Article.IsStored || !Article.IsDownloaded || !Article.ImagesCached);
+
+        public string SaveText
+        {
+            get
+            {
+                if (Article == null) return "Enregistrer";
+                if (!Article.IsStored) return "Enregistrer";
+                if (!Article.IsDownloaded) return "Hors-ligne";
+                return "Images";
+            }
+        }
+
+        private Color _favoriteColor = Colors.Gray;
+        public Color FavoriteColor
+        {
+            get => _favoriteColor;
+            set => SetProperty(ref _favoriteColor, value);
+        }
+
+        private Color _readLaterColor = Colors.Gray;
+        public Color ReadLaterColor
+        {
+            get => _readLaterColor;
+            set => SetProperty(ref _readLaterColor, value);
+        }
+
+        private void NotifyArticleState()
+        {
+            Notify(nameof(IsFavorite), nameof(IsReadLater), nameof(CanSave), nameof(SaveText), nameof(FavoriteIconColorKey),
+                   nameof(HasNext), nameof(HasPrevious), nameof(HasNavigation), nameof(PositionText), nameof(IsArchiveView));
+            FavoriteColor = IsFavorite ? ThemeService.Palette.Warning : ThemeService.Palette.TextPrimary;
+            ReadLaterColor = IsReadLater ? ThemeService.Palette.Info : ThemeService.Palette.TextPrimary;
+            (NextCommand as Command)?.ChangeCanExecute();
+            (PreviousCommand as Command)?.ChangeCanExecute();
+        }
+
+        // ------------------------------------------------------------------
+        // Commandes
+        // ------------------------------------------------------------------
+
+        public ICommand OpenExternalCommand { get; }
+        public ICommand OpenInAppWebCommand { get; }
+        public ICommand DownloadContentCommand { get; }
         public ICommand ArchiveCommand { get; }
         public ICommand ShareCommand { get; }
-
         public ICommand ShowSourceCommand { get; }
+        public ICommand FavoriteCommand { get; }
+        public ICommand ReadLaterCommand { get; }
+        public ICommand ToggleReadCommand { get; }
+        public ICommand FontSmallerCommand { get; }
+        public ICommand FontBiggerCommand { get; }
+        public ICommand ReaderSettingsCommand { get; }
+        public ICommand SpeakCommand { get; }
+        public ICommand NextCommand { get; }
+        public ICommand PreviousCommand { get; }
+        public ICommand NextUnreadCommand { get; }
+        public ICommand CopyLinkCommand { get; }
+        public ICommand MoreCommand { get; }
+        public ICommand ReloadFullCommand { get; }
 
-        // ----------------------------------------------------------------------
-
-        public ArticleDetailViewModel(SQLiteService dbService, RssService rssService)
-        {
-            _dbService = dbService;
-            _rssService = rssService;
-
-            ArchiveCommand = new Command(async () => await Archive());
-            ShareCommand = new Command(async () => await Share());
-
-            OpenExternalCommand = new Command(async () => await ExecuteOpenExternalCommand());
-            DownloadContentCommand = new Command(async () => await ExecuteDownloadContentCommand(),
-                                               () => Article != null && !Article.IsDownloaded && !IsBusy);
-
-            ShowSourceCommand = new Command(async () => await ExecuteShowSourceCommand());
-        }
-
-        /// <summary>
-        /// Méthode requise par IQueryAttributable pour récupérer les paramètres.
-        /// </summary>
-        /// 
-        private async Task ExecuteShowSourceCommand()
-        {
-            // 1. Vérification si le contenu existe
-            if (string.IsNullOrEmpty(ContentHtml))
-            {
-                await Shell.Current.DisplayAlert("Information", "Le code source n'est pas encore disponible. Attendez la fin du téléchargement.", "OK");
-                return;
-            }
-
-            try
-            {
-                var navigationParameter = new Dictionary<string, object>
-        {
-            { "HtmlContent", ContentHtml }
-        };
-
-                await Shell.Current.GoToAsync(nameof(SourceCodePage), navigationParameter);
-            }
-            catch (Exception ex)
-            {
-                // 2. Affichage de l'erreur précise en cas de problème de navigation
-                Debug.WriteLine($"[ERROR] XML Navigation: {ex.Message}");
-                await Shell.Current.DisplayAlert("Erreur de navigation", $"Impossible d'ouvrir l'inspecteur : {ex.Message}", "OK");
-            }
-        }
+        // ------------------------------------------------------------------
+        // Paramètres de navigation
+        // ------------------------------------------------------------------
 
         public void ApplyQueryAttributes(IDictionary<string, object> query)
         {
-            // Récupération de l'ID
-            if (query.TryGetValue("itemId", out object itemIdValue))
+            if (_loaded) return;
+
+            if (query.TryGetValue("IsArchive", out object? isArchiveValue))
+                IsArchive = isArchiveValue?.ToString() ?? string.Empty;
+
+            if (query.TryGetValue("Item", out object? itemObj) && itemObj is RssItem item)
             {
-                ItemId = itemIdValue.ToString();
-            }
-
-            // Récupération du flag IsArchive
-            if (query.TryGetValue("IsArchive", out object isArchiveValue))
-            {
-                IsArchive = isArchiveValue.ToString();
-            }
-
-            // On lance le chargement une fois qu'on a tous les paramètres
-            if (!string.IsNullOrEmpty(ItemId))
-            {
-                Task.Run(LoadArticleById);
-            }
-        }
-
-        private async Task Archive()
-        {
-            if (Article == null) return;
-
-            try
-            {
-                IsBusy = true;
-
-                // 1. On crée l'objet Archive en mappant les propriétés du RssItem actuel
-                var archive = new ArchiveItem
-                {
-                    Title = Article.Title,
-                    Summary = Article.Summary,
-                    PublishDate = Article.PublishDate,
-                    ArticleGuid = Article.ArticleGuid,
-                    Link = Article.Link,
-                    Author = Article.Author,
-                    ImageUrl = Article.ImageUrl,
-                    ContentHtml = Article.ContentHtml,
-                    SiteName = Article.SiteName,
-                    ArchivedAt = DateTime.Now
-                };
-
-                // 2. On l'insère via le service
-                int result = await _dbService.InsertArchiveAsync(archive);
-
-                if (result > 0)
-                {
-                    await Shell.Current.DisplayAlert("Succès", "Article ajouté à vos archives !", "OK");
-                }
-                else
-                {
-                    // Cas où le GUID existe déjà dans la table Archives
-                    await Shell.Current.DisplayAlert("Info", "Cet article est déjà présent dans vos archives.", "OK");
-                }
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"[ARCHIVE ERROR]: {ex.Message}");
-                await Shell.Current.DisplayAlert("Erreur", "L'archivage a échoué. Vérifiez votre connexion à la base de données.", "OK");
-            }
-            finally
-            {
-                IsBusy = false;
-            }
-        }
-
-        private async Task Share()
-        {
-            if (Article == null || string.IsNullOrEmpty(Article.Link))
+                _loaded = true;
+                _ = LoadItemAsync(item);
                 return;
+            }
 
-            // On utilise la classe Share intégrée nativement à Microsoft.Maui.ApplicationModel
-            // Ce n'est pas le "Toolkit", c'est le coeur de MAUI.
-            await Microsoft.Maui.ApplicationModel.DataTransfer.Share.Default.RequestAsync(new ShareTextRequest
+            if (query.TryGetValue("itemId", out object? itemIdValue))
             {
-                Uri = Article.Link,
-                Title = Article.Title,
-                Text = $"Regarde cet article : {Article.Title}"
-            });
+                ItemId = itemIdValue?.ToString() ?? string.Empty;
+                _loaded = true;
+                _ = LoadArticleById();
+            }
         }
 
+        // ------------------------------------------------------------------
+        // Chargement
+        // ------------------------------------------------------------------
+
+        /// <summary>Conservé : chargement par Id (archives ou articles enregistrés).</summary>
         private async Task LoadArticleById()
         {
-            if (string.IsNullOrWhiteSpace(ItemId) || IsBusy) return;
-
             if (!int.TryParse(ItemId, out int id)) return;
 
             try
             {
                 IsBusy = true;
-                RssItem item = null;
+                RssItem? item = null;
 
-                // 🎯 C'EST ICI QUE ÇA SE PASSE :
-                if (IsArchive == "true")
+                if (IsArchiveView)
                 {
-                    // On va chercher dans la table Archives
                     var archived = await _dbService.GetArchiveByIdAsync(id);
-                    if (archived != null)
-                    {
-                        // On transforme l'ArchiveItem en RssItem pour que le XAML l'affiche
-                        item = new RssItem
-                        {
-                            Id = archived.Id,
-                            Title = archived.Title,
-                            ContentHtml = archived.ContentHtml,
-                            Summary = archived.Summary,
-                            ImageUrl = archived.ImageUrl,
-                            SiteName = archived.SiteName,
-                            Link = archived.Link,
-                            PublishDate = archived.PublishDate,
-                            IsDownloaded = true
-                        };
-                    }
+                    item = archived?.ToRssItem();
                 }
                 else
                 {
-                    // Chargement normal (Page d'accueil)
                     item = await _dbService.GetItemByIdAsync(id);
-                    if (item != null && !item.IsRead)
-                    {
-                        item.IsRead = true;
-                        await _dbService.MarkItemAsReadAsync(item);
-                    }
                 }
 
-                if (item != null)
-                {
-                    Article = item;
-                    Title = item.Title;
-
-                    // On s'assure que le HTML est bien envoyé à la propriété ContentHtml
-                    ContentHtml = item.ContentHtml;
-
-                    // Force le rafraîchissement du contenu
-                    await LoadArticleContentAsync(item);
-                }
+                if (item != null) await LoadItemAsync(item);
+                else await ShowMessageAsync("Article introuvable", "Il a peut-être été supprimé par le nettoyage automatique.");
             }
             catch (Exception ex)
             {
@@ -278,149 +267,614 @@ namespace Rss_feeder_prout.ViewModels
             }
         }
 
-        private async Task LoadArticleContentAsync(RssItem item)
+        private async Task LoadItemAsync(RssItem item)
         {
-            if (item == null) return;
-
-            string processedHtml = item.ContentHtml;
-
-            if (item.IsDownloaded && !string.IsNullOrWhiteSpace(item.ContentHtml))
-            {
-                try
-                {
-                    // --- 1. NETTOYAGE DES STRUCTURES FIXES (ZATAZ ET AUTRES) ---
-
-                    // A. Coupe radicale : On garde uniquement ce qu'il y a dans l'article
-                    if (processedHtml.Contains("</article>", StringComparison.OrdinalIgnoreCase))
-                    {
-                        processedHtml = Regex.Replace(processedHtml, @"</article>.*", "</article>", RegexOptions.Singleline | RegexOptions.IgnoreCase);
-                    }
-
-                    // B. Suppression des éléments de partage (Zataz utilise souvent 'social-share' ou 'share-links')
-                    string socialPattern = @"<div[^>]+class=['""][^""]*(social-share|share-links|ss-container|entry-share)[^""]*['""][^>]*>.*?</div>";
-                    processedHtml = Regex.Replace(processedHtml, socialPattern, string.Empty, RegexOptions.Singleline | RegexOptions.IgnoreCase);
-
-                    // C. Suppression des encadrés "Abonnez-vous" ou "Newsletter"
-                    string newsletterPattern = @"<div[^>]+class=['""][^""]*(newsletter|subscribe|mailchimp|wp-block-buttons)[^""]*['""][^>]*>.*?</div>";
-                    processedHtml = Regex.Replace(processedHtml, newsletterPattern, string.Empty, RegexOptions.Singleline | RegexOptions.IgnoreCase);
-
-                    // D. Nettoyage des footers et blocs de recommandation déjà identifiés
-                    string footerPattern = @"<div[^>]+class=['""][^""]*(single-footer|sfoter-sec|rb-s-container|single-related|block-wrap|post-navigation|author-box)[^""]*['""][^>]*>.*?</div>";
-                    processedHtml = Regex.Replace(processedHtml, footerPattern, string.Empty, RegexOptions.Singleline | RegexOptions.IgnoreCase);
-
-                    // E. Supprime le point de chargement infini
-                    processedHtml = Regex.Replace(processedHtml, @"<div[^>]+id=['""]single-infinite-point['""][^>]*>.*?</div>", string.Empty, RegexOptions.Singleline | RegexOptions.IgnoreCase);
-
-
-                    // --- 2. NETTOYAGE DYNAMIQUE PAR SÉLECTEURS DU SITE ---
-                    var site = await _dbService.GetSiteByIdAsync(item.SiteId ?? 0);
-
-                    if (site != null && !string.IsNullOrWhiteSpace(site.CustomCleanSelectors))
-                    {
-                        var selectors = site.CustomCleanSelectors.Split(',', StringSplitOptions.RemoveEmptyEntries);
-
-                        foreach (var selector in selectors)
-                        {
-                            string cleanSelector = selector.Trim();
-
-                            // Regex pour ID (#id)
-                            if (cleanSelector.StartsWith("#"))
-                            {
-                                string idName = cleanSelector.Substring(1);
-                                string pattern = $@"<([a-zA-Z0-9]+)[^>]+id=['""]{idName}['""][^>]*>.*?</\1>";
-                                processedHtml = Regex.Replace(processedHtml, pattern, string.Empty, RegexOptions.Singleline | RegexOptions.IgnoreCase);
-                            }
-                            // Regex pour Classe (.classe)
-                            else if (cleanSelector.StartsWith("."))
-                            {
-                                string className = cleanSelector.Substring(1);
-                                string pattern = $@"<([a-zA-Z0-9]+)[^>]+class=['""][^""]*{className}[^""]*['""][^>]*>.*?</\1>";
-                                processedHtml = Regex.Replace(processedHtml, pattern, string.Empty, RegexOptions.Singleline | RegexOptions.IgnoreCase);
-                            }
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Debug.WriteLine($"[CLEAN ERROR] : {ex.Message}");
-                }
-            }
-            else if (Connectivity.Current.NetworkAccess == NetworkAccess.Internet)
-            {
-                await ExecuteOpenExternalCommand(silent: true);
-                processedHtml = "<html><body style='color:white;text-align:center;'><h3>Redirection...</h3></body></html>";
-            }
-            else
-            {
-                processedHtml = $"<html><body style='color:white;'><h3>Mode Hors-ligne</h3><p>{item.Summary}</p></body></html>";
-            }
-
-            // 🎯 MISE À JOUR DE L'INTERFACE (CSS optimisé pour la lecture)
-            MainThread.BeginInvokeOnMainThread(() =>
-            {
-                ContentHtml = $@"<html>
-            <head>
-                <style>
-                    body {{ color: white; background-color: #121212; font-family: -apple-system, sans-serif; line-height: 1.6; padding: 15px; font-size: 17px; }} 
-                    img {{ max-width: 100%; height: auto; border-radius: 8px; margin: 10px 0; }} 
-                    a {{ color: #007AFF; text-decoration: none; }}
-                    h1, h2, h3 {{ color: #f0f0f0; }}
-                    iframe {{ width: 100%; border: none; }}
-                </style>
-            </head>
-            <body>{processedHtml}</body>
-        </html>";
-                Title = item.Title;
-            });
-        }
-
-        // --- Commandes ---
-
-        private async Task ExecuteDownloadContentCommand()
-        {
-            if (Article == null || Article.IsDownloaded) return;
+            _loadCts?.Cancel();
+            _loadCts = new CancellationTokenSource();
+            _extractedHtml = null;
+            StopSpeech();
 
             try
             {
-                IsBusy = true;
-                Article.IsBusy = true;
+                // Article enregistré : on recharge la version complète (les listes n'ont pas le contenu)
+                if (item.IsStored && !IsArchiveView && string.IsNullOrEmpty(item.ContentHtml))
+                {
+                    var full = await _dbService.GetItemByIdAsync(item.Id);
+                    if (full != null)
+                    {
+                        item.ContentHtml = full.ContentHtml;
+                        item.IsDownloaded = full.IsDownloaded;
+                        item.ImagesCached = full.ImagesCached;
+                        item.IsFavorite = full.IsFavorite;
+                        item.IsReadLater = full.IsReadLater;
+                        if (!string.IsNullOrEmpty(full.LocalImagePath)) item.LocalImagePath = full.LocalImagePath;
+                    }
+                }
 
-                await _rssService.DownloadAndSaveItemContentAsync(Article);
+                Article = item;
+                Title = item.Title;
 
-                // Rafraîchir l'affichage du contenu HTML avec le contenu téléchargé
-                await LoadArticleContentAsync(Article);
+                // Marquer comme lu
+                if (!IsArchiveView && !item.IsRead && AppSettings.MarkReadOnOpen)
+                {
+                    if (item.IsStored) await _dbService.MarkItemAsReadAsync(item);
+                    else item.IsRead = true;
+                }
 
+                await LoadArticleContentAsync(item);
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"[DETAIL] Download failed: {ex.Message}");
-                await Shell.Current.DisplayAlert("Erreur", "Échec du téléchargement du contenu pour la lecture hors ligne.", "OK");
-            }
-            finally
-            {
-                IsBusy = false;
-                Article.IsBusy = false;
-                ((Command)DownloadContentCommand).ChangeCanExecute();
+                CrashLog.Write("Lecteur.Load", ex);
+                await ShowMessageAsync("Erreur", "Impossible d'afficher cet article.");
             }
         }
 
-        // 🎯 MODIFICATION : Ajout d'un paramètre optionnel pour ne pas afficher l'alerte
+        /// <summary>
+        /// Conservé (réécrit) : prépare le contenu à afficher.
+        ///  1. contenu téléchargé -> affichage immédiat (hors-ligne)
+        ///  2. sinon contenu du flux / résumé immédiatement, puis récupération de l'article complet en ligne
+        /// </summary>
+        private async Task LoadArticleContentAsync(RssItem item)
+        {
+            if (item.IsDownloaded && !string.IsNullOrWhiteSpace(item.ContentHtml))
+            {
+                _currentBody = await Task.Run(() => CleanArticleHtmlAsync(item.ContentHtml, item.SiteId));
+                await RenderAsync();
+                return;
+            }
+
+            // Contenu du flux ou résumé
+            var feedBody = !string.IsNullOrWhiteSpace(item.ContentHtml)
+                ? item.ContentHtml
+                : $"<p>{HtmlHelper.Encode(item.Summary)}</p>";
+            _currentBody = feedBody;
+
+            bool online = Connectivity.Current.NetworkAccess == NetworkAccess.Internet;
+            string notice;
+            if (!online)
+                notice = "Vous êtes hors connexion : seul le résumé est disponible. Enregistrez les articles hors-ligne lors de la synchronisation pour les lire partout.";
+            else if (AppSettings.AutoExtractOnOpen)
+                notice = "Chargement de l'article complet…";
+            else
+                notice = "Résumé seulement. Touchez « Article complet » pour le récupérer.";
+
+            await RenderAsync(notice);
+
+            if (online && AppSettings.AutoExtractOnOpen)
+                await LoadFullOnlineAsync(force: false);
+        }
+
+        /// <summary>Récupère l'article complet depuis le site, SANS l'enregistrer.</summary>
+        private async Task LoadFullOnlineAsync(bool force)
+        {
+            var item = Article;
+            if (item == null || string.IsNullOrWhiteSpace(item.Link)) return;
+            if (!force && item.IsDownloaded) return;
+
+            if (Connectivity.Current.NetworkAccess != NetworkAccess.Internet)
+            {
+                UiHelper.Toast("Hors connexion");
+                return;
+            }
+
+            var ct = _loadCts?.Token ?? CancellationToken.None;
+            try
+            {
+                IsLoadingContent = true;
+                LoadingText = "Récupération de l'article complet…";
+
+                var site = item.SiteId.HasValue ? await _dbService.GetSiteByIdAsync(item.SiteId.Value) : null;
+
+                // CORRIGÉ : l'extraction (téléchargement + AngleSharp + SmartReader + contournements) tournait
+                // sur le thread de l'interface -> l'app se figeait puis Android la fermait. Tout se fait en arrière-plan.
+                var currentBody = _currentBody;
+                var extraction = await Task.Run(async () =>
+                {
+                    var html = await _rssService.ExtractArticleHtmlAsync(item.Link, site, ct);
+                    bool better = !string.IsNullOrWhiteSpace(html) && HtmlHelper.TextLength(html) > HtmlHelper.TextLength(currentBody);
+                    string cleaned = better ? await CleanArticleHtmlAsync(html!, item.SiteId) : string.Empty;
+                    int minutes = better ? HtmlHelper.EstimateReadingMinutes(html) : 0;
+                    bool tooShort = !better && HtmlHelper.TextLength(currentBody) < 300;
+                    return (html, better, cleaned, minutes, tooShort);
+                }, ct);
+                if (ct.IsCancellationRequested || !ReferenceEquals(item, Article)) return;
+
+                if (extraction.better)
+                {
+                    _extractedHtml = extraction.html;
+                    _currentBody = extraction.cleaned;
+                    item.ReadingMinutes = extraction.minutes;
+                    await RenderAsync(item.IsStored
+                        ? "Article complet affiché (en ligne). Touchez « Hors-ligne » pour le garder."
+                        : "Article complet affiché (en ligne). Touchez « Enregistrer » pour le garder.");
+                }
+                else if (extraction.tooShort)
+                {
+                    await RenderAsync("Impossible de récupérer l'article complet (site protégé ou contenu dynamique). Ouvrez-le dans le navigateur.");
+                }
+                else
+                {
+                    await RenderAsync();
+                }
+            }
+            catch (OperationCanceledException) { }
+            catch (Exception ex)
+            {
+                CrashLog.Write("Lecteur.Extraction", ex);
+            }
+            finally
+            {
+                IsLoadingContent = false;
+            }
+        }
+
+        private async Task RenderAsync(string? notice = null)
+        {
+            var item = Article;
+            if (item == null) return;
+
+            try
+            {
+                var body = _currentBody;
+                var watched = HtmlHelper.ParseKeywords(AppSettings.HighlightKeywords);
+                // Construction de la page hors du thread UI (regex sur de gros textes)
+                var html = await Task.Run(() => ReaderHtmlBuilder.BuildAsync(item, body, notice, watched));
+
+                MainThread.BeginInvokeOnMainThread(() =>
+                {
+                    if (!ReferenceEquals(item, Article)) return;
+                    ContentHtml = html;
+                    HtmlSource = new HtmlWebViewSource
+                    {
+                        Html = html,
+                        // Dossier des images : les images hors-ligne (file://) se chargent directement
+                        BaseUrl = ReaderHtmlBuilder.ReaderBaseUrl
+                    };
+                    Title = item.Title;
+                    NotifyArticleState();
+                });
+            }
+            catch (Exception ex)
+            {
+                CrashLog.Write("Lecteur.Render", ex);
+                await ShowMessageAsync("Affichage impossible", "Cet article n'a pas pu être affiché. Essayez « Ouvrir dans le navigateur ».");
+            }
+        }
+
+        private async Task ShowMessageAsync(string title, string text)
+        {
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                HtmlSource = new HtmlWebViewSource { Html = ReaderHtmlBuilder.Message(title, text) };
+            });
+        }
+
+        /// <summary>
+        /// Conservé : nettoyage des structures fixes (ZATAZ et autres) + sélecteurs du site.
+        /// CORRIGÉ : les sélecteurs sont appliqués avec AngleSharp (les regex cassaient les balises imbriquées).
+        /// </summary>
+        private async Task<string> CleanArticleHtmlAsync(string html, int? siteId)
+        {
+            string processedHtml = html;
+            try
+            {
+                // A. Coupe radicale : On garde uniquement ce qu'il y a dans l'article
+                if (Regex.Matches(processedHtml, "</article>", RegexOptions.IgnoreCase).Count == 1)
+                {
+                    processedHtml = Regex.Replace(processedHtml, @"</article>.*", "</article>", RegexOptions.Singleline | RegexOptions.IgnoreCase);
+                }
+
+                // B-E. Partage, newsletter, footers, chargement infini
+                var classes = new[]
+                {
+                    "social-share", "share-links", "ss-container", "entry-share",
+                    "newsletter", "subscribe", "mailchimp", "wp-block-buttons",
+                    "single-footer", "sfoter-sec", "rb-s-container", "single-related", "block-wrap", "post-navigation", "author-box"
+                };
+                var selectors = string.Join(",", classes.Select(c => "[class*='" + c + "']")) + ",#single-infinite-point";
+
+                var site = siteId.HasValue ? await _dbService.GetSiteByIdAsync(siteId.Value) : null;
+                if (site != null && !string.IsNullOrWhiteSpace(site.CustomCleanSelectors))
+                    selectors += "," + site.CustomCleanSelectors;
+
+                using var context = AngleSharp.BrowsingContext.New(AngleSharp.Configuration.Default);
+                using var doc = await AngleSharp.BrowsingContextExtensions.OpenAsync(context, req => req.Content(processedHtml));
+                foreach (var sel in selectors.Split(',', StringSplitOptions.RemoveEmptyEntries))
+                {
+                    try
+                    {
+                        foreach (var el in doc.QuerySelectorAll(sel.Trim()).ToList()) el.Remove();
+                    }
+                    catch { /* sélecteur invalide */ }
+                }
+                processedHtml = doc.Body?.InnerHtml ?? processedHtml;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[CLEAN ERROR] : {ex.Message}");
+            }
+            return processedHtml;
+        }
+
+        // ------------------------------------------------------------------
+        // Actions
+        // ------------------------------------------------------------------
+
+        private async Task MoveAsync(RssItem? next)
+        {
+            if (next == null) return;
+            await LoadItemAsync(next);
+        }
+
+        /// <summary>Conservé : enregistrer hors-ligne (texte + images selon les réglages).</summary>
+        private async Task ExecuteDownloadContentCommand()
+        {
+            var item = Article;
+            if (item == null || IsArchiveView) return;
+
+            if (Connectivity.Current.NetworkAccess != NetworkAccess.Internet && _extractedHtml == null && !item.IsDownloaded)
+            {
+                await UiHelper.AlertAsync("Hors connexion", "Connectez-vous pour télécharger cet article.");
+                return;
+            }
+
+            try
+            {
+                IsLoadingContent = true;
+                LoadingText = AppSettings.ManualImageMode == ImageMode.None ? "Enregistrement…" : "Enregistrement du texte et des images…";
+                var mode = AppSettings.ManualImageMode;
+
+                if (!item.IsStored)
+                {
+                    var extracted = _extractedHtml;
+                    var stored = await Task.Run(() => _rssService.SaveLiveItemAsync(item, downloadFull: extracted == null, mode, extracted));
+                    if (stored != null)
+                    {
+                        item.Id = stored.Id;
+                        item.IsDownloaded = stored.IsDownloaded;
+                        item.ImagesCached = stored.ImagesCached;
+                        item.ContentHtml = stored.ContentHtml;
+                    }
+                }
+                else if (_extractedHtml != null && !item.IsDownloaded)
+                {
+                    var extracted = _extractedHtml;
+                    await Task.Run(() => _rssService.SaveExtractedContentAsync(item, extracted, mode));
+                }
+                else
+                {
+                    // Déjà téléchargé : on complète les images
+                    if (item.IsDownloaded && !item.ImagesCached && mode == ImageMode.None) mode = ImageMode.Optimized;
+                    await Task.Run(() => _rssService.DownloadAndSaveItemContentAsync(item, mode));
+                }
+
+                // Recharge depuis la base pour afficher la version hors-ligne
+                if (item.IsStored)
+                {
+                    var full = await _dbService.GetItemByIdAsync(item.Id);
+                    if (full != null)
+                    {
+                        item.ContentHtml = full.ContentHtml;
+                        item.IsDownloaded = full.IsDownloaded;
+                        item.ImagesCached = full.ImagesCached;
+                        if (!string.IsNullOrEmpty(full.LocalImagePath)) item.LocalImagePath = full.LocalImagePath;
+                    }
+                }
+
+                if (item.IsDownloaded)
+                {
+                    _currentBody = await Task.Run(() => CleanArticleHtmlAsync(item.ContentHtml, item.SiteId));
+                    await RenderAsync();
+                    UiHelper.Toast(item.ImagesCached ? "Disponible hors-ligne (avec images)" : "Disponible hors-ligne");
+                }
+                else
+                {
+                    UiHelper.Toast("Enregistré (résumé seulement)");
+                    NotifyArticleState();
+                }
+            }
+            catch (Exception ex)
+            {
+                CrashLog.Write("Lecteur.Telechargement", ex);
+                await UiHelper.AlertAsync("Erreur", "Échec du téléchargement du contenu pour la lecture hors ligne.");
+            }
+            finally
+            {
+                IsLoadingContent = false;
+            }
+        }
+
+        /// <summary>Conservé : archivage permanent.</summary>
+        private async Task Archive()
+        {
+            var item = Article;
+            if (item == null || IsArchiveView) return;
+
+            try
+            {
+                var archive = ArchiveItem.FromArticle(item);
+                if (string.IsNullOrWhiteSpace(archive.ContentHtml) && _extractedHtml != null)
+                    archive.ContentHtml = _extractedHtml;
+
+                int result = await _dbService.InsertArchiveAsync(archive);
+                UiHelper.Toast(result > 0 ? "Article ajouté à vos archives" : "Cet article est déjà dans vos archives");
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[ARCHIVE ERROR]: {ex.Message}");
+                await UiHelper.AlertAsync("Erreur", "L'archivage a échoué.");
+            }
+        }
+
+        /// <summary>Conservé : partage du lien.</summary>
+        private async Task Share()
+        {
+            if (Article == null || string.IsNullOrEmpty(Article.Link)) return;
+
+            await Microsoft.Maui.ApplicationModel.DataTransfer.Share.Default.RequestAsync(new ShareTextRequest
+            {
+                Uri = Article.Link,
+                Title = Article.Title,
+                Text = $"Regarde cet article : {Article.Title}"
+            });
+        }
+
+        private async Task ToggleFavoriteAsync()
+        {
+            var item = Article;
+            if (item == null || IsArchiveView) return;
+
+            if (!item.IsStored)
+            {
+                item.IsFavorite = true;
+                await _rssService.SaveLiveItemAsync(item, false, AppSettings.ManualImageMode, _extractedHtml);
+                UiHelper.Toast("Enregistré et ajouté aux favoris");
+            }
+            else
+            {
+                await _dbService.SetFavoriteAsync(item, !item.IsFavorite);
+                UiHelper.Toast(item.IsFavorite ? "Ajouté aux favoris" : "Retiré des favoris");
+            }
+            NotifyArticleState();
+        }
+
+        private async Task ToggleReadLaterAsync()
+        {
+            var item = Article;
+            if (item == null || IsArchiveView) return;
+
+            if (!item.IsStored)
+            {
+                item.IsReadLater = true;
+                await _rssService.SaveLiveItemAsync(item, false, AppSettings.ManualImageMode, _extractedHtml);
+                UiHelper.Toast("Enregistré pour plus tard");
+            }
+            else
+            {
+                await _dbService.SetReadLaterAsync(item, !item.IsReadLater);
+                UiHelper.Toast(item.IsReadLater ? "À lire plus tard" : "Retiré de « Plus tard »");
+            }
+            NotifyArticleState();
+        }
+
+        private async Task ToggleReadAsync()
+        {
+            var item = Article;
+            if (item == null || IsArchiveView) return;
+            await _dbService.SetReadAsync(item, !item.IsRead);
+            UiHelper.Toast(item.IsRead ? "Marqué comme lu" : "Marqué comme non lu");
+        }
+
+        /// <summary>Conservé : ouverture dans le navigateur.</summary>
         private async Task ExecuteOpenExternalCommand(bool silent = false)
         {
             if (Article == null || string.IsNullOrWhiteSpace(Article.Link)) return;
 
             try
             {
-                await Launcher.OpenAsync(new Uri(Article.Link));
+                await UiHelper.OpenBrowserAsync(Article.Link);
             }
             catch (Exception ex)
             {
                 Debug.WriteLine($"[DETAIL] Failed to open external link: {ex.Message}");
                 if (!silent)
+                    await UiHelper.AlertAsync("Erreur", "Impossible d'ouvrir le lien web de l'article.");
+            }
+        }
+
+        private async Task OpenInAppWebAsync()
+        {
+            if (Article == null || string.IsNullOrWhiteSpace(Article.Link)) return;
+            await UiHelper.GoToAsync(nameof(ItemDetailPage), new Dictionary<string, object>
+            {
+                ["url"] = Article.Link,
+                ["title"] = Article.Title
+            });
+        }
+
+        /// <summary>Conservé : inspecteur de code source HTML.</summary>
+        private async Task ExecuteShowSourceCommand()
+        {
+            if (string.IsNullOrEmpty(ContentHtml))
+            {
+                await UiHelper.AlertAsync("Information", "Le code source n'est pas encore disponible.");
+                return;
+            }
+
+            try
+            {
+                await UiHelper.GoToAsync(nameof(SourceCodePage), new Dictionary<string, object>
                 {
-                    await Shell.Current.DisplayAlert("Erreur", "Impossible d'ouvrir le lien web de l'article.", "OK");
+                    { "HtmlContent", _extractedHtml ?? Article?.ContentHtml ?? ContentHtml }
+                });
+            }
+            catch (Exception ex)
+            {
+                await UiHelper.AlertAsync("Erreur de navigation", $"Impossible d'ouvrir l'inspecteur : {ex.Message}");
+            }
+        }
+
+        private async Task CopyLinkAsync()
+        {
+            if (Article == null || string.IsNullOrWhiteSpace(Article.Link)) return;
+            await Clipboard.Default.SetTextAsync(Article.Link);
+            UiHelper.Toast("Lien copié");
+        }
+
+        private async Task ReaderSettingsAsync()
+        {
+            var themeLabel = AppSettings.ReaderTheme switch
+            {
+                "dark" => "Sombre", "light" => "Clair", "sepia" => "Sépia", "black" => "Noir (OLED)", _ => "Comme l'application"
+            };
+            var choice = await UiHelper.ActionSheetAsync("Affichage du lecteur", "Fermer", null,
+                $"Thème : {themeLabel}",
+                AppSettings.ReaderSerif ? "Police : avec empattement → sans" : "Police : sans empattement → avec",
+                $"Interligne : {AppSettings.ReaderLineHeight:0.0}",
+                AppSettings.ReaderJustify ? "Texte justifié → aligné à gauche" : "Texte aligné à gauche → justifié",
+                "Taille du texte +", "Taille du texte −");
+            if (choice == null) return;
+
+            if (choice.StartsWith("Thème"))
+            {
+                var t = await UiHelper.ActionSheetAsync("Thème du lecteur", "Annuler", null, "Comme l'application", "Sombre", "Clair", "Sépia", "Noir (OLED)");
+                if (t == null) return;
+                AppSettings.ReaderTheme = t switch { "Sombre" => "dark", "Clair" => "light", "Sépia" => "sepia", "Noir (OLED)" => "black", _ => "app" };
+            }
+            else if (choice.StartsWith("Police")) AppSettings.ReaderSerif = !AppSettings.ReaderSerif;
+            else if (choice.StartsWith("Interligne"))
+            {
+                var next = AppSettings.ReaderLineHeight + 0.15;
+                AppSettings.ReaderLineHeight = next > 2.05 ? 1.35 : next;
+            }
+            else if (choice.StartsWith("Texte")) AppSettings.ReaderJustify = !AppSettings.ReaderJustify;
+            else if (choice == "Taille du texte +") AppSettings.ReaderFontSize += 1;
+            else if (choice == "Taille du texte −") AppSettings.ReaderFontSize -= 1;
+
+            await RenderAsync();
+        }
+
+        private async Task MoreAsync()
+        {
+            if (Article == null) return;
+            var actions = new List<string>();
+            if (!IsArchiveView)
+            {
+                actions.Add(Article.IsRead ? "Marquer comme non lu" : "Marquer comme lu");
+                actions.Add(IsReadLater ? "Retirer de « Plus tard »" : "Lire plus tard");
+                actions.Add("Archiver");
+                actions.Add("Article complet (recharger en ligne)");
+            }
+            actions.Add("Ouvrir la page web dans l'app");
+            actions.Add("Ouvrir dans le navigateur");
+            actions.Add("Copier le lien");
+            actions.Add("Affichage du lecteur…");
+            actions.Add("Voir le code source");
+            if (!IsArchiveView && HasNavigation) actions.Add("Article non lu suivant");
+
+            var choice = await UiHelper.ActionSheetAsync(HtmlHelper.Truncate(Article.Title, 60), "Annuler", null, actions.ToArray());
+            switch (choice)
+            {
+                case "Marquer comme non lu":
+                case "Marquer comme lu": await ToggleReadAsync(); break;
+                case "Retirer de « Plus tard »":
+                case "Lire plus tard": await ToggleReadLaterAsync(); break;
+                case "Archiver": await Archive(); break;
+                case "Article complet (recharger en ligne)": await LoadFullOnlineAsync(true); break;
+                case "Ouvrir la page web dans l'app": await OpenInAppWebAsync(); break;
+                case "Ouvrir dans le navigateur": await ExecuteOpenExternalCommand(); break;
+                case "Copier le lien": await CopyLinkAsync(); break;
+                case "Affichage du lecteur…": await ReaderSettingsAsync(); break;
+                case "Voir le code source": await ExecuteShowSourceCommand(); break;
+                case "Article non lu suivant": await MoveAsync(_session.MoveNextUnread()); break;
+            }
+        }
+
+        // ------------------------------------------------------------------
+        // Synthèse vocale
+        // ------------------------------------------------------------------
+
+        private async Task ToggleSpeechAsync()
+        {
+            if (IsSpeaking)
+            {
+                StopSpeech();
+                return;
+            }
+
+            var item = Article;
+            if (item == null) return;
+
+            var text = item.Title + ".\n" + HtmlHelper.StripHtml(_currentBody);
+            if (string.IsNullOrWhiteSpace(text)) return;
+
+            _speechCts = new CancellationTokenSource();
+            var ct = _speechCts.Token;
+            IsSpeaking = true;
+
+            try
+            {
+                SpeechOptions? options = null;
+                try
+                {
+                    var locales = await TextToSpeech.Default.GetLocalesAsync();
+                    var fr = locales.FirstOrDefault(l => l.Language.StartsWith("fr", StringComparison.OrdinalIgnoreCase));
+                    if (fr != null) options = new SpeechOptions { Locale = fr };
+                }
+                catch { }
+
+                // Découpage par paragraphes (Android limite la longueur d'un énoncé)
+                foreach (var chunk in SplitForSpeech(text, 3000))
+                {
+                    if (ct.IsCancellationRequested) break;
+                    await TextToSpeech.Default.SpeakAsync(chunk, options, ct);
                 }
             }
+            catch (OperationCanceledException) { }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[TTS] {ex.Message}");
+                UiHelper.Toast("Synthèse vocale indisponible");
+            }
+            finally
+            {
+                IsSpeaking = false;
+            }
+        }
+
+        private static IEnumerable<string> SplitForSpeech(string text, int max)
+        {
+            var paragraphs = text.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+            var current = new System.Text.StringBuilder();
+            foreach (var p in paragraphs)
+            {
+                if (current.Length + p.Length + 1 > max && current.Length > 0)
+                {
+                    yield return current.ToString();
+                    current.Clear();
+                }
+                if (p.Length > max)
+                {
+                    for (int i = 0; i < p.Length; i += max)
+                        yield return p.Substring(i, Math.Min(max, p.Length - i));
+                    continue;
+                }
+                current.Append(p).Append('\n');
+            }
+            if (current.Length > 0) yield return current.ToString();
+        }
+
+        public void StopSpeech()
+        {
+            try { _speechCts?.Cancel(); } catch { }
+            IsSpeaking = false;
+        }
+
+        /// <summary>Appelé quand la page disparaît.</summary>
+        public void OnDisappearing()
+        {
+            StopSpeech();
         }
     }
 }

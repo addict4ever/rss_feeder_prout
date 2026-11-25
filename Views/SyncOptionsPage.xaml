@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:controls="clr-namespace:Rss_feeder_prout.Controls"
+             x:Class="Rss_feeder_prout.Views.SyncOptionsPage"
+             Shell.NavBarIsVisible="False"
+             BackgroundColor="{DynamicResource Overlay}">
+
+    <!-- Feuille de choix avant une synchronisation : contenu complet ? images ? -->
+    <Grid>
+        <Grid.GestureRecognizers>
+            <TapGestureRecognizer Tapped="OnBackdropTapped" />
+        </Grid.GestureRecognizers>
+
+        <Border VerticalOptions="End" BackgroundColor="{DynamicResource Surface}" StrokeThickness="0"
+                StrokeShape="RoundRectangle 26,26,0,0" Padding="20,14,20,26">
+            <Border.GestureRecognizers>
+                <TapGestureRecognizer />
+            </Border.GestureRecognizers>
+
+            <VerticalStackLayout Spacing="14">
+                <BoxView WidthRequest="42" HeightRequest="5" CornerRadius="3" Color="{DynamicResource Surface3}" HorizontalOptions="Center" />
+
+                <Label Text="Synchroniser" Style="{StaticResource PageTitle}" />
+
+                <!-- Que télécharger ? -->
+                <Label Text="Que télécharger ?" Style="{StaticResource CaptionStrong}" />
+                <Border x:Name="QuickCard" Style="{StaticResource Tile}">
+                    <Border.GestureRecognizers><TapGestureRecognizer Tapped="OnQuickTapped" /></Border.GestureRecognizers>
+                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+                        <controls:IconView x:Name="QuickIcon" Icon="rss" Size="22" />
+                        <VerticalStackLayout Grid.Column="1" Spacing="1">
+                            <Label Text="Flux seulement (rapide)" FontFamily="OpenSansSemibold" />
+                            <Label Text="Titres et résumés ; articles complets récupérés à l'ouverture" Style="{StaticResource Caption}" />
+                        </VerticalStackLayout>
+                    </Grid>
+                </Border>
+                <Border x:Name="FullCard" Style="{StaticResource Tile}">
+                    <Border.GestureRecognizers><TapGestureRecognizer Tapped="OnFullTapped" /></Border.GestureRecognizers>
+                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+                        <controls:IconView x:Name="FullIcon" Icon="download" Size="22" />
+                        <VerticalStackLayout Grid.Column="1" Spacing="1">
+                            <Label Text="Tout télécharger (hors-ligne)" FontFamily="OpenSansSemibold" />
+                            <Label Text="Articles complets, lisibles sans connexion" Style="{StaticResource Caption}" />
+                        </VerticalStackLayout>
+                    </Grid>
+                </Border>
+
+                <!-- Images -->
+                <VerticalStackLayout x:Name="ImagesSection" Spacing="10">
+                    <Label Text="Images" Style="{StaticResource CaptionStrong}" />
+                    <HorizontalStackLayout Spacing="8">
+                        <controls:ChipView x:Name="ChipNone" Text="Aucune" Icon="eye-off" />
+                        <controls:ChipView x:Name="ChipOptimized" Text="Optimisées" Icon="compress" />
+                        <controls:ChipView x:Name="ChipOriginal" Text="Originales" Icon="image" />
+                    </HorizontalStackLayout>
+                    <Label x:Name="ImagesHint" Style="{StaticResource Caption}" />
+                </VerticalStackLayout>
+
+                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="6">
+                    <CheckBox x:Name="RememberBox" VerticalOptions="Center" />
+                    <Label Grid.Column="1" Text="Retenir ce choix (ne plus demander)" VerticalOptions="Center" Style="{StaticResource Caption}" />
+                </Grid>
+
+                <Grid ColumnDefinitions="*,2*" ColumnSpacing="10">
+                    <Button Grid.Column="0" Text="Annuler" Style="{StaticResource SecondaryButton}" Clicked="OnCancelClicked" />
+                    <Button Grid.Column="1" Text="Lancer" Style="{StaticResource PrimaryButton}" Clicked="OnStartClicked" />
+                </Grid>
+            </VerticalStackLayout>
+        </Border>
+    </Grid>
+</ContentPage>

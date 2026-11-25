@@ -4,53 +4,42 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:local="clr-namespace:Rss_feeder_prout.Views"
     x:Class="Rss_feeder_prout.AppShell"
-    FlyoutWidth="250"
-    Shell.FlyoutBehavior="Flyout"
-    BackgroundColor="{StaticResource Primary}">
+    Shell.FlyoutBehavior="Disabled"
+    Shell.NavBarIsVisible="False"
+    Shell.BackgroundColor="{DynamicResource Bg}"
+    Shell.ForegroundColor="{DynamicResource TextPrimary}"
+    Shell.TitleColor="{DynamicResource TextPrimary}"
+    Shell.UnselectedColor="{DynamicResource TextMuted}"
+    Shell.TabBarBackgroundColor="{DynamicResource TabBarColor}"
+    Shell.TabBarForegroundColor="{DynamicResource Accent}"
+    Shell.TabBarTitleColor="{DynamicResource Accent}"
+    Shell.TabBarUnselectedColor="{DynamicResource TextMuted}">
 
-    <Shell.FlyoutHeader>
-        <Grid HeightRequest="150" BackgroundColor="{StaticResource PrimaryDark}">
-            <Label Text="Rss_Prout" 
-                   TextColor="White" 
-                   FontSize="24" 
-                   FontAttributes="Bold"
-                   VerticalOptions="Center" 
-                   HorizontalOptions="Center"/>
-        </Grid>
-    </Shell.FlyoutHeader>
+    <!--
+        Navigation par onglets en bas (plus naturelle sur mobile) :
+        Accueil · Recherche · Favoris · Archives · Plus
+        Les autres pages (catégorie, articles, lecteur, gestion…) s'ouvrent par-dessus avec retour.
+    -->
+    <TabBar>
+        <Tab Title="Accueil" Icon="tab_home.png" Route="hometab">
+            <ShellContent ContentTemplate="{DataTemplate local:MainPage}" Route="MainPage" />
+        </Tab>
 
-    <FlyoutItem Title="Accueil / Lecteur" Icon="rss_icon.png" Route="FeedReaderRoute">
-        <ShellContent
-            ContentTemplate="{DataTemplate local:MainPage}"
-            Route="MainPage" />
-    </FlyoutItem>
+        <Tab Title="Recherche" Icon="tab_search.png" Route="searchtab">
+            <ShellContent ContentTemplate="{DataTemplate local:SearchPage}" Route="SearchPage" />
+        </Tab>
 
-    <FlyoutItem Title="Gérer les Playlists" Icon="list.png" Route="PlaylistRoute">
-        <ShellContent
-            ContentTemplate="{DataTemplate local:PlaylistManagerPage}"
-            Route="PlaylistManagerPage" />
-    </FlyoutItem>
+        <Tab Title="Favoris" Icon="tab_star.png" Route="favoritestab">
+            <ShellContent ContentTemplate="{DataTemplate local:FavoritesPage}" Route="FavoritesPage" />
+        </Tab>
 
-    <FlyoutItem Title="Base de Données" Icon="database.png" Route="DBManagerRoute">
-        <ShellContent
-            ContentTemplate="{DataTemplate local:DatabaseManagerPage}"
-            Route="DatabaseManagerPage" />
-    </FlyoutItem>
+        <Tab Title="Archives" Icon="tab_archive.png" Route="archivestab">
+            <ShellContent ContentTemplate="{DataTemplate local:ArchivePage}" Route="ArchivePage" />
+        </Tab>
 
-    <FlyoutItem Title="Archives" Icon="archive.png">
-        <ShellContent ContentTemplate="{DataTemplate local:ArchivePage}" />
-    </FlyoutItem>
-
-    <FlyoutItem Title="Options Logiciel" Icon="settings.png" Route="OptionsRoute">
-        <ShellContent
-        ContentTemplate="{DataTemplate local:OptionRssPage}"
-        Route="OptionRssPage" />
-    </FlyoutItem>
-
-    <MenuItem Text="❌ Quitter" Clicked="OnExitClicked" />
-
-    <MenuItem Text=" " IsEnabled="False" />
-    <MenuItem Text="Made by Xartoff" IsEnabled="False" />
-    <MenuItem Text="🌐 Visitez pouetpouet.ca" Clicked="OnOpenWebsiteClicked" />
+        <Tab Title="Plus" Icon="tab_more.png" Route="moretab">
+            <ShellContent ContentTemplate="{DataTemplate local:MorePage}" Route="MorePage" />
+        </Tab>
+    </TabBar>
 
 </Shell>

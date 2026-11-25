@@ -1,9 +1,6 @@
 ﻿using Microsoft.Maui.Controls.Shapes;
 using Microsoft.Maui.Devices;
 
-#if ANDROID
-using Android.App;
-#endif
 
 namespace Rss_feeder_prout.Views;
 
@@ -49,34 +46,38 @@ public partial class HeaderView : ContentView
     "M 30,60 Q 35,50 40,60"            // 25. Petit bec (Bisou)
 };
 
+    private bool _surprised;
+
     public HeaderView()
     {
         InitializeComponent();
         ApplyVisibilityLogic();
     }
 
+    /// <summary>
+    /// La navigation se fait maintenant par onglets : la mascotte est toujours visible
+    /// (elle n'est plus seulement un bouton de menu sur tablette).
+    /// </summary>
     private void ApplyVisibilityLogic()
     {
-        if (DeviceInfo.Current.Idiom == DeviceIdiom.Tablet)
-        {
-            if (IsGestureNavigationActive())
-            {
-                MenuButton.IsVisible = true;
-            }
-        }
+        MenuButton.IsVisible = true;
     }
 
+    /// <summary>Conservé (détection de la navigation par gestes Android).</summary>
     private bool IsGestureNavigationActive()
     {
 #if ANDROID
         try
         {
-            var context = Android.App.Application.Context;
+            var context = global::Android.App.Application.Context;
             var resources = context.Resources;
-            int resourceId = resources.GetIdentifier("config_navBarInteractionMode", "integer", "android");
-            if (resourceId > 0)
+            if (resources != null)
             {
-                return resources.GetInteger(resourceId) == 2;
+                int resourceId = resources.GetIdentifier("config_navBarInteractionMode", "integer", "android");
+                if (resourceId > 0)
+                {
+                    return resources.GetInteger(resourceId) == 2;
+                }
             }
         }
         catch { }
@@ -84,22 +85,28 @@ public partial class HeaderView : ContentView
         return DeviceInfo.Current.Idiom == DeviceIdiom.Tablet;
     }
 
-    private void OnMenuButtonClicked(object sender, EventArgs e)
+    private async void OnMenuButtonClicked(object? sender, EventArgs e)
     {
-        bool isOpening = !Shell.Current.FlyoutIsPresented;
-        Shell.Current.FlyoutIsPresented = isOpening;
+        _surprised = !_surprised;
 
-        if (isOpening)
+        try
         {
-            // Quand on OUVRE : Toujours la bouche "O" (Surprise)
-            SmileyMouth.Data = (PathGeometry)_converter.ConvertFromInvariantString("M 30,50 A 5,5 0 1,0 40,50 A 5,5 0 1,0 30,50");
+            await MenuButton.ScaleTo(0.85, 70, Easing.CubicOut);
+            await MenuButton.ScaleTo(1.0, 160, Easing.SpringOut);
+        }
+        catch { }
+
+        if (_surprised)
+        {
+            // Bouche "O" (Surprise)
+            SmileyMouth.Data = (PathGeometry)_converter.ConvertFromInvariantString("M 30,50 A 5,5 0 1,0 40,50 A 5,5 0 1,0 30,50")!;
         }
         else
         {
-            // Quand on FERME : On choisit une face au hasard parmi la liste
+            // On choisit une face au hasard parmi la liste
             int index = _random.Next(_randomFaces.Length);
             string randomPath = _randomFaces[index];
-            SmileyMouth.Data = (PathGeometry)_converter.ConvertFromInvariantString(randomPath);
+            SmileyMouth.Data = (PathGeometry)_converter.ConvertFromInvariantString(randomPath)!;
         }
     }
 }

@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:controls="clr-namespace:Rss_feeder_prout.Controls"
+             xmlns:views="clr-namespace:Rss_feeder_prout.Views"
+             x:Class="Rss_feeder_prout.Views.MorePage"
+             Shell.NavBarIsVisible="False">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="{DynamicResource HeaderPadding}" Spacing="0">
+
+            <!-- En-tête avec la mascotte -->
+            <Grid ColumnDefinitions="*,Auto" Margin="4,6,0,10">
+                <VerticalStackLayout VerticalOptions="Center" Spacing="2">
+                    <Label Text="Rss Prout" Style="{StaticResource Display}" />
+                    <Label x:Name="VersionLabel" Style="{StaticResource Caption}" />
+                </VerticalStackLayout>
+                <views:HeaderView Grid.Column="1" VerticalOptions="Center" />
+            </Grid>
+
+            <Label Text="Contenu" Style="{StaticResource SectionTitle}" />
+            <Border Style="{StaticResource CardTight}">
+                <VerticalStackLayout>
+                    <controls:MenuRowView Icon="folder" Title="Catégories &amp; sources" Subtitle="Ajouter, organiser, tester vos flux · OPML" Tapped="OnPlaylistsTapped" />
+                    <BoxView Style="{StaticResource Divider}" Margin="68,0,0,0" />
+                    <controls:MenuRowView Icon="chart" Title="Statistiques" Subtitle="Lecture, sources actives, santé des flux, journal" Accent="{DynamicResource Info}" Tapped="OnStatsTapped" />
+                </VerticalStackLayout>
+            </Border>
+
+            <Label Text="Application" Style="{StaticResource SectionTitle}" />
+            <Border Style="{StaticResource CardTight}">
+                <VerticalStackLayout>
+                    <controls:MenuRowView Icon="settings" Title="Réglages" Subtitle="Synchro automatique, images, lecture, apparence" Accent="{DynamicResource Success}" Tapped="OnSettingsTapped" />
+                    <BoxView Style="{StaticResource Divider}" Margin="68,0,0,0" />
+                    <controls:MenuRowView Icon="database" Title="Données &amp; sauvegardes" Subtitle="Sauvegarder, restaurer, compresser, archiver, exporter" Accent="{DynamicResource Warning}" Tapped="OnDatabaseTapped" />
+                    <BoxView Style="{StaticResource Divider}" Margin="68,0,0,0" />
+                    <controls:MenuRowView x:Name="ThemeRow" Icon="moon" Title="Thème" Accent="{DynamicResource TextSecondary}" Tapped="OnThemeTapped" />
+                    <BoxView Style="{StaticResource Divider}" Margin="68,0,0,0" />
+                    <controls:MenuRowView x:Name="CrashRow" Icon="alert" Title="Journal des erreurs" Accent="{DynamicResource Danger}" Tapped="OnCrashLogTapped" />
+                </VerticalStackLayout>
+            </Border>
+
+            <Label Text="À propos" Style="{StaticResource SectionTitle}" />
+            <Border Style="{StaticResource CardTight}">
+                <VerticalStackLayout>
+                    <controls:MenuRowView Icon="web" Title="Visitez pouetpouet.ca" Subtitle="Made by Xartoff" Accent="{DynamicResource Info}" Tapped="OnWebsiteTapped" />
+                    <BoxView Style="{StaticResource Divider}" Margin="68,0,0,0" />
+                    <controls:MenuRowView Icon="exit" Title="Quitter" IsDanger="True" ShowChevron="False" Tapped="OnExitTapped" />
+                </VerticalStackLayout>
+            </Border>
+
+            <BoxView HeightRequest="30" Color="Transparent" />
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

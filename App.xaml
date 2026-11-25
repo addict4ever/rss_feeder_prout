@@ -15,51 +15,9 @@
 
             <converters:InverseBoolConverter x:Key="InverseBoolConverter" />
             <converters:NullToBoolConverter x:Key="NullToBoolConverter" />
-
-            <Style x:Key="FilterChipStyle" TargetType="Button">
-                <Setter Property="BackgroundColor" Value="{StaticResource Gray100}" />
-                <Setter Property="TextColor" Value="{StaticResource Gray900}" />
-                <Setter Property="CornerRadius" Value="18" />
-                <Setter Property="FontSize" Value="12" />
-                <Setter Property="HeightRequest" Value="36" />
-                <Setter Property="Padding" Value="12,0" />
-                <Setter Property="BorderWidth" Value="0" />
-
-                <Setter Property="VisualStateManager.VisualStateGroups">
-                    <VisualStateGroupList>
-                        <VisualStateGroup x:Name="CommonStates">
-                            <VisualState x:Name="Normal" />
-                            <VisualState x:Name="Pressed">
-                                <VisualState.Setters>
-                                    <Setter Property="BackgroundColor" Value="{StaticResource Primary}" />
-                                    <Setter Property="TextColor" Value="White" />
-                                </VisualState.Setters>
-                            </VisualState>
-                        </VisualStateGroup>
-                    </VisualStateGroupList>
-                </Setter>
-            </Style>
-
-            <Style x:Key="TabBtnStyle" TargetType="Button">
-                <Setter Property="BackgroundColor" Value="#444" />
-                <Setter Property="TextColor" Value="White" />
-                <Setter Property="FontSize" Value="12" />
-                <Setter Property="CornerRadius" Value="5" />
-                <Setter Property="Padding" Value="10,5" />
-                <Setter Property="VisualStateManager.VisualStateGroups">
-                    <VisualStateGroupList>
-                        <VisualStateGroup x:Name="CommonStates">
-                            <VisualState x:Name="Normal" />
-                            <VisualState x:Name="PointerOver">
-                                <VisualState.Setters>
-                                    <Setter Property="BackgroundColor" Value="#666" />
-                                </VisualState.Setters>
-                            </VisualState>
-                        </VisualStateGroup>
-                    </VisualStateGroupList>
-                </Setter>
-            </Style>
-            
+            <converters:IsNotNullConverter x:Key="IsNotNullConverter" />
+            <converters:IntToBoolConverter x:Key="IntToBoolConverter" />
+            <converters:StringNotEmptyConverter x:Key="StringNotEmptyConverter" />
 
         </ResourceDictionary>
     </Application.Resources>

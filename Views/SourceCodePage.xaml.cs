@@ -112,21 +112,16 @@ public partial class SourceCodePage : ContentPage, IQueryAttributable
         ConsoleLogLabel.Text += $"\n[{DateTime.Now:HH:mm:ss}] Console active...";
     }
 
-    // CORRECTION DU BOUTON FERMER : Utilise la navigation Shell pour revenir en arrière
+    // CORRIGÉ : "Fermer" revient simplement à l'article (au lieu de renvoyer à l'accueil)
     private async void OnCloseClicked(object sender, EventArgs e)
     {
         try
         {
-            // "//" indique au Shell de remonter à la racine de la navigation 
-            // et de charger la page définie comme accueil (MainPage).
-            await Shell.Current.GoToAsync("//MainPage");
+            await Shell.Current.GoToAsync("..");
         }
-        catch (Exception ex)
+        catch
         {
-
-            // Si tu as un nom de route différent pour ton accueil, 
-            // tu peux aussi essayer de remonter tout en haut de la pile :
-            await Shell.Current.GoToAsync("///");
+            await Shell.Current.GoToAsync("//MainPage");
         }
     }
 }

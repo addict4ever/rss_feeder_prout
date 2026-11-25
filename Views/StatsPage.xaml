@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:controls="clr-namespace:Rss_feeder_prout.Controls"
+             x:Class="Rss_feeder_prout.Views.StatsPage"
+             Shell.NavBarIsVisible="False">
+
+    <Grid RowDefinitions="Auto,*">
+        <Grid Grid.Row="0" Padding="{DynamicResource HeaderPadding}" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+            <controls:IconButton Grid.Column="0" Icon="back" Command="{Binding BackCommand}" />
+            <Label Grid.Column="1" Text="{Binding Title}" Style="{StaticResource HeaderTitle}" VerticalOptions="Center" Margin="4,0" />
+            <controls:IconButton Grid.Column="2" Icon="refresh" Command="{Binding RefreshCommand}" />
+        </Grid>
+
+        <ScrollView Grid.Row="1">
+            <VerticalStackLayout Padding="14,0,14,30">
+
+                <!-- Chiffres clés -->
+                <Grid ColumnDefinitions="*,*,*" RowDefinitions="Auto,Auto" ColumnSpacing="10" RowSpacing="10">
+                    <Border Grid.Row="0" Grid.Column="0" Style="{StaticResource Tile}">
+                        <VerticalStackLayout><Label Text="{Binding Total}" Style="{StaticResource BigNumber}" FontSize="22" /><Label Text="Articles" Style="{StaticResource Caption}" /></VerticalStackLayout>
+                    </Border>
+                    <Border Grid.Row="0" Grid.Column="1" Style="{StaticResource Tile}">
+                        <VerticalStackLayout><Label Text="{Binding Unread}" Style="{StaticResource BigNumber}" FontSize="22" TextColor="{DynamicResource Accent}" /><Label Text="Non lus" Style="{StaticResource Caption}" /></VerticalStackLayout>
+                    </Border>
+                    <Border Grid.Row="0" Grid.Column="2" Style="{StaticResource Tile}">
+                        <VerticalStackLayout><Label Text="{Binding ReadRate}" Style="{StaticResource BigNumber}" FontSize="22" /><Label Text="Lus" Style="{StaticResource Caption}" /></VerticalStackLayout>
+                    </Border>
+                    <Border Grid.Row="1" Grid.Column="0" Style="{StaticResource Tile}">
+                        <VerticalStackLayout><Label Text="{Binding Downloaded}" Style="{StaticResource BigNumber}" FontSize="22" TextColor="{DynamicResource Success}" /><Label Text="Hors-ligne" Style="{StaticResource Caption}" /></VerticalStackLayout>
+                    </Border>
+                    <Border Grid.Row="1" Grid.Column="1" Style="{StaticResource Tile}">
+                        <VerticalStackLayout><Label Text="{Binding Favorites}" Style="{StaticResource BigNumber}" FontSize="22" TextColor="{DynamicResource Warning}" /><Label Text="Favoris" Style="{StaticResource Caption}" /></VerticalStackLayout>
+                    </Border>
+                    <Border Grid.Row="1" Grid.Column="2" Style="{StaticResource Tile}">
+                        <VerticalStackLayout><Label Text="{Binding Archives}" Style="{StaticResource BigNumber}" FontSize="22" TextColor="{DynamicResource Info}" /><Label Text="Archives" Style="{StaticResource Caption}" /></VerticalStackLayout>
+                    </Border>
+                </Grid>
+
+                <!-- Articles par jour -->
+                <Label Text="Articles publiés · 7 derniers jours" Style="{StaticResource SectionTitle}" />
+                <Border Style="{StaticResource Card}">
+                    <VerticalStackLayout BindableLayout.ItemsSource="{Binding PerDay}" Spacing="8">
+                        <BindableLayout.ItemTemplate>
+                            <DataTemplate>
+                                <Grid ColumnDefinitions="64,*,48" ColumnSpacing="10">
+                                    <Label Text="{Binding Name}" Style="{StaticResource Caption}" VerticalOptions="Center" />
+                                    <ProgressBar Grid.Column="1" Progress="{Binding Ratio}" VerticalOptions="Center" />
+                                    <Label Grid.Column="2" Text="{Binding CountText}" Style="{StaticResource CaptionStrong}" HorizontalTextAlignment="End" VerticalOptions="Center" />
+                                </Grid>
+                            </DataTemplate>
+                        </BindableLayout.ItemTemplate>
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- Sources les plus actives -->
+                <Label Text="Sources les plus actives" Style="{StaticResource SectionTitle}" />
+                <Border Style="{StaticResource Card}">
+                    <VerticalStackLayout BindableLayout.ItemsSource="{Binding TopSites}" Spacing="10">
+                        <BindableLayout.ItemTemplate>
+                            <DataTemplate>
+                                <VerticalStackLayout Spacing="4">
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <Label Text="{Binding Name}" FontSize="14" MaxLines="1" LineBreakMode="TailTruncation" />
+                                        <Label Grid.Column="1" Text="{Binding CountText}" Style="{StaticResource CaptionStrong}" />
+                                    </Grid>
+                                    <ProgressBar Progress="{Binding Ratio}" ProgressColor="{DynamicResource Info}" />
+                                </VerticalStackLayout>
+                            </DataTemplate>
+                        </BindableLayout.ItemTemplate>
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- Santé des flux -->
+                <Label Text="Santé des flux" Style="{StaticResource SectionTitle}" />
+                <Border Style="{StaticResource Card}">
+                    <VerticalStackLayout Spacing="10">
+                        <Label Text="{Binding FeedsHealth}" FontFamily="OpenSansSemibold" />
+                        <VerticalStackLayout BindableLayout.ItemsSource="{Binding BrokenSites}" Spacing="8" IsVisible="{Binding HasBrokenSites}">
+                            <BindableLayout.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                                        <Ellipse WidthRequest="8" HeightRequest="8" Fill="{Binding HealthColor}" VerticalOptions="Start" Margin="0,6,0,0" />
+                                        <VerticalStackLayout Grid.Column="1" Spacing="1">
+                                            <Label Text="{Binding DisplayName}" FontSize="14" FontFamily="OpenSansSemibold" />
+                                            <Label Text="{Binding HealthText}" Style="{StaticResource Caption}" MaxLines="2" LineBreakMode="TailTruncation" />
+                                        </VerticalStackLayout>
+                                    </Grid>
+                                </DataTemplate>
+                            </BindableLayout.ItemTemplate>
+                        </VerticalStackLayout>
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- Journal -->
+                <Grid ColumnDefinitions="*,Auto">
+                    <Label Text="Journal des synchronisations" Style="{StaticResource SectionTitle}" />
+                    <Button Grid.Column="1" Text="Effacer" Style="{StaticResource GhostButton}" FontSize="13" Command="{Binding ClearLogsCommand}" VerticalOptions="End" />
+                </Grid>
+                <VerticalStackLayout BindableLayout.ItemsSource="{Binding Logs}" Spacing="8">
+                    <BindableLayout.ItemTemplate>
+                        <DataTemplate>
+                            <Border Style="{StaticResource Card}" Padding="14,10">
+                                <VerticalStackLayout Spacing="2">
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <Label Text="{Binding WhenText}" FontFamily="OpenSansSemibold" FontSize="13.5" />
+                                        <Label Grid.Column="1" Text="{Binding TriggerText}" Style="{StaticResource Caption}" />
+                                    </Grid>
+                                    <Label Text="{Binding DetailText}" Style="{StaticResource Caption}" />
+                                    <Label Text="{Binding Message}" Style="{StaticResource Caption}" TextColor="{DynamicResource Warning}" IsVisible="{Binding HasErrors}" MaxLines="3" LineBreakMode="TailTruncation" />
+                                </VerticalStackLayout>
+                            </Border>
+                        </DataTemplate>
+                    </BindableLayout.ItemTemplate>
+                </VerticalStackLayout>
+            </VerticalStackLayout>
+        </ScrollView>
+    </Grid>
+</ContentPage>

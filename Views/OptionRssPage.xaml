@@ -1,28 +1,198 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:Rss_feeder_prout.ViewModels"
+             xmlns:controls="clr-namespace:Rss_feeder_prout.Controls"
              x:Class="Rss_feeder_prout.Views.OptionRssPage"
-             Title="Options RSS">
+             Shell.NavBarIsVisible="False">
 
-    <ScrollView>
-        <VerticalStackLayout Padding="20" Spacing="20">
+    <Grid RowDefinitions="Auto,*">
 
-            <Frame BackgroundColor="{AppThemeBinding Light=#F0F0F0, Dark=#2C2C2C}" HasShadow="True">
-                <VerticalStackLayout Spacing="10">
-                    <Label Text="Mise a jour automatique" 
-                           FontSize="18" 
-                           FontAttributes="Bold" />
+        <Grid Grid.Row="0" Padding="{DynamicResource HeaderPadding}" ColumnDefinitions="Auto,*" ColumnSpacing="8">
+            <controls:IconButton Grid.Column="0" Icon="back" Command="{Binding BackCommand}" />
+            <Label Grid.Column="1" Text="Réglages" Style="{StaticResource HeaderTitle}" VerticalOptions="Center" Margin="4,0" />
+        </Grid>
 
-                    <Label Text="Choisir intervalle de synchronisation :" 
-                           FontSize="14" 
-                           TextColor="Gray" />
+        <ScrollView Grid.Row="1">
+            <VerticalStackLayout Padding="14,0,14,30">
 
-                    <Picker x:Name="IntervalPicker" 
-                            Title="Selectionner un intervalle"
-                            SelectedIndexChanged="OnIntervalChanged" />
-                </VerticalStackLayout>
-            </Frame>
+                <!-- ================= SYNCHRO AUTO ================= -->
+                <Label Text="Synchronisation automatique" Style="{StaticResource SectionTitle}" />
+                <Border Style="{StaticResource Card}">
+                    <VerticalStackLayout Spacing="14">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <VerticalStackLayout VerticalOptions="Center" Spacing="2">
+                                <Label Text="Activer" FontFamily="OpenSansSemibold" />
+                                <Label Text="{Binding NextText}" Style="{StaticResource Caption}" TextColor="{DynamicResource Accent}" />
+                                <Label Text="{Binding LastAutoText}" Style="{StaticResource Caption}" />
+                            </VerticalStackLayout>
+                            <Switch Grid.Column="1" IsToggled="{Binding AutoSyncEnabled}" VerticalOptions="Center" />
+                        </Grid>
 
-        </VerticalStackLayout>
-    </ScrollView>
+                        <VerticalStackLayout Spacing="12" IsVisible="{Binding AutoSyncEnabled}">
+                            <BoxView Style="{StaticResource Divider}" />
+                            <Label Text="Quand ?" Style="{StaticResource CaptionStrong}" />
+                            <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                                <RadioButton Grid.Column="0" Content="Intervalle régulier" GroupName="schedule" IsChecked="{Binding IsIntervalMode}" />
+                                <RadioButton Grid.Column="1" Content="Heures fixes" GroupName="schedule" IsChecked="{Binding IsFixedMode}" />
+                            </Grid>
+
+                            <!-- Intervalle -->
+                            <Border Style="{StaticResource Inset}" IsVisible="{Binding IsIntervalMode}">
+                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                                    <Label Text="Toutes les" VerticalOptions="Center" />
+                                    <Picker Grid.Column="1" ItemsSource="{Binding IntervalChoices}" SelectedIndex="{Binding IntervalIndex}" WidthRequest="190" />
+                                </Grid>
+                            </Border>
+
+                            <!-- Heures fixes -->
+                            <Border Style="{StaticResource Inset}" IsVisible="{Binding IsFixedMode}">
+                                <VerticalStackLayout Spacing="10">
+                                    <Label Text="La synchro se lance à ces heures (une heure manquée est rattrapée dès que possible)." Style="{StaticResource Caption}" />
+                                    <FlexLayout BindableLayout.ItemsSource="{Binding FixedTimes}" Wrap="Wrap">
+                                        <BindableLayout.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border Style="{StaticResource Pill}" BackgroundColor="{DynamicResource AccentSoft}" Padding="12,6,6,6" Margin="0,0,8,8">
+                                                    <HorizontalStackLayout Spacing="6">
+                                                        <Label Text="{Binding .}" FontFamily="OpenSansSemibold" TextColor="{DynamicResource Accent}" VerticalOptions="Center" />
+                                                        <controls:IconButton Icon="close" Size="24" IconSize="12" IsFlat="True" IconColor="{DynamicResource Accent}"
+                                                                             Command="{Binding Source={RelativeSource AncestorType={x:Type vm:SettingsViewModel}}, Path=RemoveTimeCommand}"
+                                                                             CommandParameter="{Binding .}" />
+                                                    </HorizontalStackLayout>
+                                                </Border>
+                                            </DataTemplate>
+                                        </BindableLayout.ItemTemplate>
+                                    </FlexLayout>
+                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                                        <TimePicker Time="{Binding NewTime}" Format="HH:mm" />
+                                        <Button Grid.Column="1" Text="Ajouter" Style="{StaticResource SmallButton}" Command="{Binding AddTimeCommand}" />
+                                    </Grid>
+                                </VerticalStackLayout>
+                            </Border>
+
+                            <BoxView Style="{StaticResource Divider}" />
+                            <Grid ColumnDefinitions="*,Auto"><Label Text="Wi-Fi uniquement" VerticalOptions="Center" /><Switch Grid.Column="1" IsToggled="{Binding WifiOnly}" /></Grid>
+                            <Grid ColumnDefinitions="*,Auto"><Label Text="Seulement pendant la recharge" VerticalOptions="Center" /><Switch Grid.Column="1" IsToggled="{Binding ChargingOnly}" /></Grid>
+                            <Grid ColumnDefinitions="*,Auto">
+                                <VerticalStackLayout VerticalOptions="Center"><Label Text="Télécharger les articles complets" /><Label Text="Pour les lire hors-ligne" Style="{StaticResource Caption}" /></VerticalStackLayout>
+                                <Switch Grid.Column="1" IsToggled="{Binding AutoDownloadContent}" VerticalOptions="Center" />
+                            </Grid>
+                            <VerticalStackLayout Spacing="4">
+                                <Label Text="Images (synchro automatique)" Style="{StaticResource CaptionStrong}" />
+                                <Picker ItemsSource="{Binding ImageModeChoices}" SelectedIndex="{Binding AutoImageModeIndex}" />
+                            </VerticalStackLayout>
+                            <Grid ColumnDefinitions="*,Auto"><Label Text="Notification à la fin" VerticalOptions="Center" /><Switch Grid.Column="1" IsToggled="{Binding NotifyOnSync}" /></Grid>
+                            <Button Text="Lancer la synchro automatique maintenant" Style="{StaticResource SecondaryButton}" Command="{Binding SyncNowCommand}" />
+                            <Label Text="Sur Android, la synchro se fait aussi app fermée (tâche système). Le téléphone peut la décaler de quelques minutes pour économiser la batterie."
+                                   Style="{StaticResource Caption}" />
+                        </VerticalStackLayout>
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- ================= SYNCHRO MANUELLE & IMAGES ================= -->
+                <Label Text="Synchro manuelle &amp; images" Style="{StaticResource SectionTitle}" />
+                <Border Style="{StaticResource Card}">
+                    <VerticalStackLayout Spacing="14">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <VerticalStackLayout VerticalOptions="Center"><Label Text="Toujours demander les options" /><Label Text="Désactivé = utilise les choix ci-dessous" Style="{StaticResource Caption}" /></VerticalStackLayout>
+                            <Switch Grid.Column="1" IsToggled="{Binding RememberSyncChoice, Converter={StaticResource InverseBoolConverter}}" VerticalOptions="Center" />
+                        </Grid>
+                        <Grid ColumnDefinitions="*,Auto"><Label Text="Télécharger les articles complets" VerticalOptions="Center" /><Switch Grid.Column="1" IsToggled="{Binding ManualDownloadContent}" /></Grid>
+                        <VerticalStackLayout Spacing="4">
+                            <Label Text="Images (synchro manuelle et « Hors-ligne »)" Style="{StaticResource CaptionStrong}" />
+                            <Picker ItemsSource="{Binding ImageModeChoices}" SelectedIndex="{Binding ManualImageModeIndex}" />
+                        </VerticalStackLayout>
+                        <BoxView Style="{StaticResource Divider}" />
+                        <Label Text="{Binding ImageMaxWidthText}" Style="{StaticResource CaptionStrong}" />
+                        <Slider Minimum="480" Maximum="2400" Value="{Binding ImageMaxWidth}" />
+                        <Label Text="{Binding ImageQualityText}" Style="{StaticResource CaptionStrong}" />
+                        <Slider Minimum="40" Maximum="95" Value="{Binding ImageQuality}" />
+                        <Label Text="{Binding MaxArticlesText}" Style="{StaticResource CaptionStrong}" />
+                        <Slider Minimum="20" Maximum="1500" Value="{Binding MaxArticles}" />
+                        <BoxView Style="{StaticResource Divider}" />
+                        <Grid ColumnDefinitions="*,Auto">
+                            <VerticalStackLayout VerticalOptions="Center"><Label Text="Économie de données" /><Label Text="Pas de vignettes distantes hors Wi-Fi" Style="{StaticResource Caption}" /></VerticalStackLayout>
+                            <Switch Grid.Column="1" IsToggled="{Binding DataSaver}" VerticalOptions="Center" />
+                        </Grid>
+                        <Grid ColumnDefinitions="*,Auto">
+                            <VerticalStackLayout VerticalOptions="Center"><Label Text="Méthodes anti-paywall" /><Label Text="Désactivées : client normal, pas de navigation profonde ni de contournement" Style="{StaticResource Caption}" /></VerticalStackLayout>
+                            <Switch Grid.Column="1" IsToggled="{Binding UsePaywallMethods}" VerticalOptions="Center" />
+                        </Grid>
+                        <Grid ColumnDefinitions="*,Auto" IsVisible="{Binding UsePaywallMethods}">
+                            <VerticalStackLayout VerticalOptions="Center"><Label Text="Proxy d'images Google (secours)" /><Label Text="Contourne le blocage d'images de certains sites" Style="{StaticResource Caption}" /></VerticalStackLayout>
+                            <Switch Grid.Column="1" IsToggled="{Binding UseGoogleImageProxy}" VerticalOptions="Center" />
+                        </Grid>
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- ================= LECTURE ================= -->
+                <Label Text="Lecture &amp; apparence" Style="{StaticResource SectionTitle}" />
+                <Border Style="{StaticResource Card}">
+                    <VerticalStackLayout Spacing="14">
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                            <Label Text="Thème de l'application" VerticalOptions="Center" />
+                            <Picker Grid.Column="1" ItemsSource="{Binding ThemeChoices}" SelectedIndex="{Binding ThemeIndex}" WidthRequest="170" />
+                        </Grid>
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                            <Label Text="Thème du lecteur" VerticalOptions="Center" />
+                            <Picker Grid.Column="1" ItemsSource="{Binding ReaderThemeChoices}" SelectedIndex="{Binding ReaderThemeIndex}" WidthRequest="170" />
+                        </Grid>
+                        <Label Text="{Binding ReaderFontSizeText}" Style="{StaticResource CaptionStrong}" />
+                        <Slider Minimum="13" Maximum="28" Value="{Binding ReaderFontSize}" />
+                        <Grid ColumnDefinitions="*,Auto"><Label Text="Police avec empattement (serif)" VerticalOptions="Center" /><Switch Grid.Column="1" IsToggled="{Binding ReaderSerif}" /></Grid>
+                        <Grid ColumnDefinitions="*,Auto"><Label Text="Texte justifié" VerticalOptions="Center" /><Switch Grid.Column="1" IsToggled="{Binding ReaderJustify}" /></Grid>
+                        <BoxView Style="{StaticResource Divider}" />
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                            <Label Text="Ouvrir les articles dans" VerticalOptions="Center" />
+                            <Picker Grid.Column="1" ItemsSource="{Binding OpenModeChoices}" SelectedIndex="{Binding OpenModeIndex}" WidthRequest="170" />
+                        </Grid>
+                        <Grid ColumnDefinitions="*,Auto"><Label Text="Marquer comme lu à l'ouverture" VerticalOptions="Center" /><Switch Grid.Column="1" IsToggled="{Binding MarkReadOnOpen}" /></Grid>
+                        <Grid ColumnDefinitions="*,Auto">
+                            <VerticalStackLayout VerticalOptions="Center"><Label Text="Récupérer l'article complet à l'ouverture" /><Label Text="Si l'article n'est pas encore hors-ligne" Style="{StaticResource Caption}" /></VerticalStackLayout>
+                            <Switch Grid.Column="1" IsToggled="{Binding AutoExtractOnOpen}" VerticalOptions="Center" />
+                        </Grid>
+                        <Grid ColumnDefinitions="*,Auto">
+                            <VerticalStackLayout VerticalOptions="Center"><Label Text="Afficher les articles en ligne" /><Label Text="Ceux du flux pas encore enregistrés (badge bleu)" Style="{StaticResource Caption}" /></VerticalStackLayout>
+                            <Switch Grid.Column="1" IsToggled="{Binding ShowOnlineByDefault}" VerticalOptions="Center" />
+                        </Grid>
+                        <Grid ColumnDefinitions="*,Auto"><Label Text="Liste compacte" VerticalOptions="Center" /><Switch Grid.Column="1" IsToggled="{Binding CompactList}" /></Grid>
+                        <Grid ColumnDefinitions="*,Auto"><Label Text="Vignettes" VerticalOptions="Center" /><Switch Grid.Column="1" IsToggled="{Binding ShowThumbnails}" /></Grid>
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- ================= RÉTENTION ================= -->
+                <Label Text="Nettoyage automatique" Style="{StaticResource SectionTitle}" />
+                <Border Style="{StaticResource Card}">
+                    <VerticalStackLayout Spacing="14">
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                            <Label Text="Supprimer les articles LUS après" VerticalOptions="Center" />
+                            <Picker Grid.Column="1" ItemsSource="{Binding RetentionChoices}" SelectedIndex="{Binding RetentionReadIndex}" WidthRequest="130" />
+                        </Grid>
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                            <Label Text="Supprimer TOUS les articles après" VerticalOptions="Center" />
+                            <Picker Grid.Column="1" ItemsSource="{Binding RetentionChoices}" SelectedIndex="{Binding RetentionAllIndex}" WidthRequest="130" />
+                        </Grid>
+                        <Label Text="Les favoris, « plus tard » et archives ne sont jamais supprimés." Style="{StaticResource Caption}" />
+                        <Grid ColumnDefinitions="*,Auto"><Label Text="Sauvegarde automatique hebdomadaire" VerticalOptions="Center" /><Switch Grid.Column="1" IsToggled="{Binding AutoBackupEnabled}" /></Grid>
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- ================= FILTRES ================= -->
+                <Label Text="Filtres par mots-clés" Style="{StaticResource SectionTitle}" />
+                <Border Style="{StaticResource Card}">
+                    <VerticalStackLayout Spacing="8">
+                        <Label Text="Masquer les articles contenant" FontFamily="OpenSansSemibold" />
+                        <Border Style="{StaticResource Inset}" Padding="10,0">
+                            <Editor Text="{Binding MutedKeywords}" Placeholder="ex. : crypto, horoscope, people" AutoSize="TextChanges" MinimumHeightRequest="60" />
+                        </Border>
+                        <Label Text="Surligner / signaler les articles contenant" FontFamily="OpenSansSemibold" Margin="0,8,0,0" />
+                        <Border Style="{StaticResource Inset}" Padding="10,0">
+                            <Editor Text="{Binding HighlightKeywords}" Placeholder="ex. : Linux, Beauce, faille" AutoSize="TextChanges" MinimumHeightRequest="60" />
+                        </Border>
+                        <Label Text="Séparez les mots par des virgules. Majuscules et accents ignorés." Style="{StaticResource Caption}" />
+                    </VerticalStackLayout>
+                </Border>
+            </VerticalStackLayout>
+        </ScrollView>
+    </Grid>
 </ContentPage>

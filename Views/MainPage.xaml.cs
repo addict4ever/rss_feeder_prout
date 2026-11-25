@@ -5,18 +5,18 @@ namespace Rss_feeder_prout.Views
 {
     public partial class MainPage : ContentPage
     {
-        // Utilise le namespace du projet
+        private readonly MainViewModel _vm;
+
         public MainPage(MainViewModel vm)
         {
             InitializeComponent();
-            // Le BindingContext est la connexion entre la vue et le ViewModel
-            BindingContext = vm;
+            BindingContext = _vm = vm;
         }
 
-        private void OnMenuButtonClicked(object sender, EventArgs e)
+        protected override async void OnAppearing()
         {
-            // On inverse l'état actuel : si c'est vrai, ça devient faux, et inversement
-            Shell.Current.FlyoutIsPresented = !Shell.Current.FlyoutIsPresented;
+            base.OnAppearing();
+            await _vm.LoadAsync();
         }
     }
 }

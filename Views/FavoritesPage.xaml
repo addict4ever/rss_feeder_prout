@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:controls="clr-namespace:Rss_feeder_prout.Controls"
+             x:Class="Rss_feeder_prout.Views.FavoritesPage"
+             Shell.NavBarIsVisible="False">
+
+    <Grid RowDefinitions="Auto,Auto,*">
+        <Grid Grid.Row="0" Padding="{DynamicResource HeaderPadding}" ColumnDefinitions="*,Auto">
+            <VerticalStackLayout Spacing="0" Margin="4,6,0,0">
+                <Label Text="Enregistrés" Style="{StaticResource PageTitle}" />
+                <Label Text="{Binding CountText}" Style="{StaticResource Caption}" />
+            </VerticalStackLayout>
+            <controls:IconButton Grid.Column="1" Icon="upload" Command="{Binding ExportCommand}" VerticalOptions="End" />
+        </Grid>
+
+        <HorizontalStackLayout Grid.Row="1" Spacing="8" Padding="14,4,14,10">
+            <controls:ChipView Text="Favoris" Icon="star" IsSelected="{Binding IsFavorites}" Command="{Binding SegmentCommand}" CommandParameter="Favorites" />
+            <controls:ChipView Text="À lire plus tard" Icon="bookmark" IsSelected="{Binding IsReadLater}" Command="{Binding SegmentCommand}" CommandParameter="ReadLater" />
+        </HorizontalStackLayout>
+
+        <RefreshView Grid.Row="2" IsRefreshing="{Binding IsRefreshing}" Command="{Binding RefreshCommand}">
+            <CollectionView ItemsSource="{Binding Items}" SelectionMode="None">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate>
+                        <controls:ArticleCardView />
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+                <CollectionView.EmptyView>
+                    <VerticalStackLayout Padding="40,60" Spacing="10">
+                        <controls:IconView Icon="star" Size="46" Color="{DynamicResource TextMuted}" />
+                        <Label Text="{Binding EmptyTitle}" Style="{StaticResource CardTitle}" HorizontalOptions="Center" />
+                        <Label Text="{Binding EmptyText}" Style="{StaticResource Caption}" HorizontalTextAlignment="Center" />
+                    </VerticalStackLayout>
+                </CollectionView.EmptyView>
+            </CollectionView>
+        </RefreshView>
+    </Grid>
+</ContentPage>

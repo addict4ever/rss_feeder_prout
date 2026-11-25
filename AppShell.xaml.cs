@@ -9,33 +9,23 @@ namespace Rss_feeder_prout
         {
             InitializeComponent();
 
-            // --- Enregistrement des routes ---
-
-            // 1. Pages principales
-            Routing.RegisterRoute(nameof(MainPage), typeof(MainPage));
-            Routing.RegisterRoute(nameof(PlaylistManagerPage), typeof(PlaylistManagerPage));
-
-            // 2. Pages de détails (utilisées pour la navigation push)
-            Routing.RegisterRoute(nameof(PlaylistDetailPage), typeof(PlaylistDetailPage));
-
-            // On enregistre ArticleDetailPage (nom utilisé dans tes ViewModels)
+            // --- Pages ouvertes par-dessus les onglets (navigation "push") ---
+            Routing.RegisterRoute(nameof(SourcesPage), typeof(SourcesPage));
+            Routing.RegisterRoute(nameof(ArticleListPage), typeof(ArticleListPage));
             Routing.RegisterRoute(nameof(ArticleDetailPage), typeof(ArticleDetailPage));
-
-            // Si tu utilises encore ItemDetailPage par endroits, décommente la ligne suivante :
-            // Routing.RegisterRoute(nameof(ItemDetailPage), typeof(ItemDetailPage));
-
-            // 3. Outils de développement
-            Routing.RegisterRoute(nameof(SourceCodePage), typeof(SourceCodePage));
-
+            Routing.RegisterRoute(nameof(ItemDetailPage), typeof(ItemDetailPage));
+            Routing.RegisterRoute(nameof(PlaylistManagerPage), typeof(PlaylistManagerPage));
+            Routing.RegisterRoute(nameof(PlaylistDetailPage), typeof(PlaylistDetailPage));
+            Routing.RegisterRoute(nameof(DatabaseManagerPage), typeof(DatabaseManagerPage));
             Routing.RegisterRoute(nameof(OptionRssPage), typeof(OptionRssPage));
+            Routing.RegisterRoute(nameof(StatsPage), typeof(StatsPage));
+
+            // Outils de développement
+            Routing.RegisterRoute(nameof(SourceCodePage), typeof(SourceCodePage));
         }
 
-        // --- Gestion des événements du Flyout (Menu) ---
-
-        /// <summary>
-        /// Ouvre le site web externe
-        /// </summary>
-        private async void OnOpenWebsiteClicked(object sender, EventArgs e)
+        /// <summary>Ouvre le site web externe.</summary>
+        public static async Task OpenWebsiteAsync()
         {
             try
             {
@@ -44,14 +34,13 @@ namespace Rss_feeder_prout
             }
             catch (Exception ex)
             {
-                await Shell.Current.DisplayAlert("Erreur", $"Impossible d'ouvrir le site : {ex.Message}", "OK");
+                if (Shell.Current != null)
+                    await Shell.Current.DisplayAlert("Erreur", $"Impossible d'ouvrir le site : {ex.Message}", "OK");
             }
         }
 
-        /// <summary>
-        /// Ferme l'application selon la plateforme
-        /// </summary>
-        private void OnExitClicked(object sender, EventArgs e)
+        /// <summary>Ferme l'application selon la plateforme.</summary>
+        public static void ExitApp()
         {
             try
             {
@@ -62,13 +51,12 @@ namespace Rss_feeder_prout
 #elif MACCATALYST
                 Environment.Exit(0);
 #else
-                Process.GetCurrentProcess().Kill(); 
+                Process.GetCurrentProcess().Kill();
 #endif
             }
             catch (Exception ex)
             {
                 Debug.WriteLine($"Erreur lors de la fermeture : {ex.Message}");
-                // Fallback ultime
                 Environment.Exit(0);
             }
         }

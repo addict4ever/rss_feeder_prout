@@ -1,17 +1,13 @@
 ﻿using Rss_feeder_prout.Models;
-using System.Xml.Linq;
 using System.Diagnostics;
-using System.Collections.Generic;
-using System.Linq;
-using System;
+using System.Xml.Linq;
 
 namespace Rss_feeder_prout.Services
 {
-    // 🎯 NOUVEAU : Modèle temporaire pour retourner les données d'importation
-    // car FeedPlaylist n'a plus la propriété Urls
+    // Modèle temporaire pour retourner les données d'importation
     public class ImportedPlaylistData
     {
-        public string Name { get; set; }
+        public string Name { get; set; } = string.Empty;
         // Liste des sites importés pour cette playlist
         public List<FeedSite> Sites { get; set; } = new List<FeedSite>();
     }
@@ -22,29 +18,30 @@ namespace Rss_feeder_prout.Services
         // EXPORTATION OPML (Playlists DB -> Fichier XML)
         // ----------------------------------------------------
         /// <summary>
-        /// Exporte les playlists et leurs sites associés au format OPML.
+        /// Exporte les playlists et leurs sites associés au format OPML 2.0.
         /// </summary>
-        // 🎯 CORRECTION: La méthode doit maintenant prendre les sites séparément.
         public string ExportPlaylistsToOpml(Dictionary<FeedPlaylist, List<FeedSite>> playlistsWithSites)
         {
-            // Création de la structure XML OPML
-            var opml = new XElement("opml", new XAttribute("version", "1.0"),
+            var opml = new XElement("opml", new XAttribute("version", "2.0"),
                 new XElement("head",
-                    new XElement("title", "Exportation Rss_feeder_prout")),
+                    new XElement("title", "Exportation Rss Prout"),
+                    new XElement("dateCreated", DateTime.UtcNow.ToString("R"))),
                 new XElement("body",
                     playlistsWithSites.Select(pair =>
                     {
                         var playlist = pair.Key;
                         var sites = pair.Value;
 
-                        return new XElement("outline", new XAttribute("text", playlist.Name),
-                            // 🎯 CORRECTION: Itérer sur la liste de FeedSite fournie
+                        return new XElement("outline",
+                            new XAttribute("text", playlist.Name),
+                            new XAttribute("title", playlist.Name),
                             sites.Select(site =>
                                 new XElement("outline",
-                                    new XAttribute("text", site.Name), // Nom du site
+                                    new XAttribute("text", site.DisplayName),   // Nom du site
+                                    new XAttribute("title", site.DisplayName),
                                     new XAttribute("type", "rss"),
                                     new XAttribute("xmlUrl", site.FeedUrl), // URL du flux RSS
-                                    new XAttribute("htmlUrl", site.FeedUrl)) // URL HTML (on utilise l'URL du flux par défaut)
+                                    new XAttribute("htmlUrl", string.IsNullOrWhiteSpace(site.SiteUrl) ? site.FeedUrl : site.SiteUrl))
                             )
                         );
                     })
@@ -52,7 +49,7 @@ namespace Rss_feeder_prout.Services
             );
 
             var doc = new XDocument(new XDeclaration("1.0", "utf-8", "yes"), opml);
-            return doc.ToString();
+            return doc.Declaration + Environment.NewLine + doc.ToString();
         }
 
         // ----------------------------------------------------
@@ -60,70 +57,62 @@ namespace Rss_feeder_prout.Services
         // ----------------------------------------------------
         /// <summary>
         /// Importe un fichier OPML et retourne une liste de données de playlist.
+        /// AMÉLIORÉ : gère les catégories imbriquées sur plusieurs niveaux et les flux "à plat".
         /// </summary>
-        // 🎯 CORRECTION: Retourne ImportedPlaylistData au lieu de FeedPlaylist
         public List<ImportedPlaylistData> ImportOpml(string opmlContent)
         {
-            var importedData = new List<ImportedPlaylistData>();
+            var result = new Dictionary<string, ImportedPlaylistData>(StringComparer.CurrentCultureIgnoreCase);
             try
             {
                 var doc = XDocument.Parse(opmlContent);
+                var body = doc.Descendants().FirstOrDefault(e => e.Name.LocalName == "body");
+                if (body == null) return new List<ImportedPlaylistData>();
 
-                // Rechercher les éléments <outline> de premier niveau (qui sont nos Playlists)
-                var playlistElements = doc.Descendants("body").Elements("outline");
-
-                foreach (var playlistElement in playlistElements)
+                foreach (var feedElement in body.Descendants().Where(e => e.Name.LocalName == "outline" && !string.IsNullOrWhiteSpace((string?)e.Attribute("xmlUrl"))))
                 {
-                    string playlistName = (string)playlistElement.Attribute("text") ?? "Playlist Importée";
-                    var importedSites = new List<FeedSite>();
+                    string url = ((string?)feedElement.Attribute("xmlUrl") ?? string.Empty).Trim();
+                    string? name = (string?)feedElement.Attribute("title") ?? (string?)feedElement.Attribute("text");
+                    string htmlUrl = (string?)feedElement.Attribute("htmlUrl") ?? string.Empty;
 
-                    // Récupération de la liste des flux (éléments enfants)
-                    var feedElements = playlistElement.Elements("outline");
+                    // Catégorie = outline parent le plus proche sans xmlUrl
+                    var category = feedElement.Ancestors()
+                        .Where(a => a.Name.LocalName == "outline" && string.IsNullOrWhiteSpace((string?)a.Attribute("xmlUrl")))
+                        .Select(a => (string?)a.Attribute("title") ?? (string?)a.Attribute("text"))
+                        .FirstOrDefault(n => !string.IsNullOrWhiteSpace(n));
 
-                    // 1. Gérer les éléments enfants (structure par catégorie)
-                    if (feedElements.Any())
+                    // Attribut category="Tech/News" (certains lecteurs)
+                    if (string.IsNullOrWhiteSpace(category))
                     {
-                        foreach (var feedElement in feedElements)
-                        {
-                            string url = (string)feedElement.Attribute("xmlUrl");
-                            string name = (string)feedElement.Attribute("text");
-
-                            if (!string.IsNullOrWhiteSpace(url))
-                            {
-                                importedSites.Add(new FeedSite
-                                {
-                                    Name = name ?? new Uri(url).Host,
-                                    FeedUrl = url
-                                });
-                            }
-                        }
-                    }
-                    // 2. Gérer le cas où l'élément de premier niveau est déjà un flux (OPML plat)
-                    else if ((string)playlistElement.Attribute("xmlUrl") is string singleUrl && !string.IsNullOrWhiteSpace(singleUrl))
-                    {
-                        string name = (string)playlistElement.Attribute("text");
-                        importedSites.Add(new FeedSite
-                        {
-                            Name = name ?? new Uri(singleUrl).Host,
-                            FeedUrl = singleUrl
-                        });
-                        // On doit encapsuler le flux dans une playlist par défaut pour l'uniformité
-                        playlistName = "Flux Importés (Plat)";
+                        var catAttr = (string?)feedElement.Attribute("category");
+                        if (!string.IsNullOrWhiteSpace(catAttr))
+                            category = catAttr.Split(new[] { ',', '/' }, StringSplitOptions.RemoveEmptyEntries).LastOrDefault()?.Trim();
                     }
 
-                    if (importedSites.Any())
+                    category = string.IsNullOrWhiteSpace(category) ? "Flux importés" : category.Trim();
+
+                    if (!result.TryGetValue(category, out var data))
                     {
-                        importedData.Add(new ImportedPlaylistData { Name = playlistName, Sites = importedSites });
+                        data = new ImportedPlaylistData { Name = category };
+                        result[category] = data;
                     }
+
+                    if (data.Sites.Any(s => string.Equals(s.FeedUrl, url, StringComparison.OrdinalIgnoreCase))) continue;
+
+                    string host = Uri.TryCreate(url, UriKind.Absolute, out var u) ? u.Host : url;
+                    data.Sites.Add(new FeedSite
+                    {
+                        Name = string.IsNullOrWhiteSpace(name) ? host : name.Trim(),
+                        FeedUrl = url,
+                        SiteUrl = htmlUrl
+                    });
                 }
             }
             catch (Exception ex)
             {
                 Debug.WriteLine($"OPML Import Error: {ex.Message}");
-                // En cas d'erreur de parsing, on retourne une liste vide
             }
 
-            return importedData;
+            return result.Values.Where(v => v.Sites.Count > 0).ToList();
         }
     }
 }

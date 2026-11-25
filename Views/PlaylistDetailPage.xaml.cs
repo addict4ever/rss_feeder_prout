@@ -1,18 +1,26 @@
-﻿using Microsoft.Maui.Controls;
+﻿using Rss_feeder_prout.Services;
 using Rss_feeder_prout.ViewModels;
 
 namespace Rss_feeder_prout.Views
 {
-    // Le 'partial' est ce qui lie ce fichier à la définition de la classe dans PlaylistDetailPage.xaml
     public partial class PlaylistDetailPage : ContentPage
     {
-        // Le constructeur prend le ViewModel en argument grâce à l'injection de dépendances (MauiProgram.cs)
+        private readonly PlaylistDetailViewModel _vm;
+
         public PlaylistDetailPage(PlaylistDetailViewModel viewModel)
         {
             InitializeComponent();
+            BindingContext = _vm = viewModel;
+        }
 
-            // Lier le ViewModel à la page
-            this.BindingContext = viewModel;
+        private async void OnActiveToggled(object? sender, ToggledEventArgs e)
+        {
+            // Enregistre immédiatement l'état "inclure dans la synchro"
+            if (_vm.CurrentPlaylist != null && _vm.CurrentPlaylist.Id > 0)
+            {
+                var db = ServiceHelper.Get<SQLiteService>();
+                if (db != null) await db.SavePlaylistAsync(_vm.CurrentPlaylist);
+            }
         }
     }
 }

@@ -4,7 +4,7 @@ namespace Rss_feeder_prout.Views
 {
     public partial class ArchivePage : ContentPage
     {
-        ArchiveViewModel _viewModel;
+        private readonly ArchiveViewModel _viewModel;
 
         public ArchivePage(ArchiveViewModel viewModel)
         {
@@ -12,11 +12,11 @@ namespace Rss_feeder_prout.Views
             BindingContext = _viewModel = viewModel;
         }
 
-        protected override void OnAppearing()
+        protected override async void OnAppearing()
         {
             base.OnAppearing();
             // Déclenche le chargement des archives
-            _viewModel.LoadArchivesCommand.Execute(null);
+            await _viewModel.ExecuteLoadArchivesCommand();
         }
     }
 }

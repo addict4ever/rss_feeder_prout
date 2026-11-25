@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:controls="clr-namespace:Rss_feeder_prout.Controls"
+             xmlns:vm="clr-namespace:Rss_feeder_prout.ViewModels"
+             x:Class="Rss_feeder_prout.Controls.ArticleCardView">
+
+    <!--
+        Carte d'article réutilisée par toutes les listes.
+        Bande colorée à gauche + pastille = état de l'article :
+          bleu   = En ligne (pas encore enregistré)
+          ambre  = Résumé enregistré (contenu complet pas téléchargé)
+          vert   = Hors-ligne (contenu complet disponible)
+        Glisser à droite : lu / non lu · glisser à gauche : favori
+    -->
+    <SwipeView BackgroundColor="Transparent" Margin="14,5">
+        <SwipeView.LeftItems>
+            <SwipeItems Mode="Execute">
+                <SwipeItem Text="Lu / non lu"
+                           BackgroundColor="{DynamicResource Info}"
+                           Command="{Binding Source={RelativeSource AncestorType={x:Type vm:ArticleListViewModelBase}}, Path=ToggleReadCommand}"
+                           CommandParameter="{Binding .}" />
+            </SwipeItems>
+        </SwipeView.LeftItems>
+        <SwipeView.RightItems>
+            <SwipeItems Mode="Execute">
+                <SwipeItem Text="Favori"
+                           BackgroundColor="{DynamicResource Warning}"
+                           Command="{Binding Source={RelativeSource AncestorType={x:Type vm:ArticleListViewModelBase}}, Path=ToggleFavoriteCommand}"
+                           CommandParameter="{Binding .}" />
+            </SwipeItems>
+        </SwipeView.RightItems>
+
+        <Border BackgroundColor="{DynamicResource Surface}"
+                Stroke="{DynamicResource BorderColor}"
+                StrokeThickness="1"
+                StrokeShape="RoundRectangle 18"
+                Padding="0">
+            <Border.GestureRecognizers>
+                <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type vm:ArticleListViewModelBase}}, Path=OpenItemCommand}"
+                                      CommandParameter="{Binding .}" />
+            </Border.GestureRecognizers>
+
+            <Grid ColumnDefinitions="4,*">
+                <!-- Bande d'état -->
+                <BoxView Grid.Column="0" Color="{Binding StatusColor}" VerticalOptions="Fill" />
+
+                <Grid Grid.Column="1" Padding="14,12,12,12" ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="12" RowSpacing="6">
+
+                    <!-- Ligne méta : icône site · nom · date -->
+                    <HorizontalStackLayout Grid.Row="0" Grid.Column="0" Spacing="7" VerticalOptions="Center">
+                        <Grid WidthRequest="18" HeightRequest="18" VerticalOptions="Center">
+                            <Border StrokeThickness="0" StrokeShape="RoundRectangle 5" BackgroundColor="{DynamicResource Surface3}">
+                                <Label Text="{Binding SiteInitial}" FontSize="10" FontFamily="OpenSansSemibold"
+                                       TextColor="{DynamicResource TextSecondary}"
+                                       HorizontalOptions="Center" VerticalOptions="Center" />
+                            </Border>
+                            <Image Source="{Binding SiteIconSource}" IsVisible="{Binding HasSiteIcon}" Aspect="AspectFill" />
+                        </Grid>
+                        <Label Text="{Binding SiteName}" Style="{StaticResource CaptionStrong}" MaxLines="1"
+                               LineBreakMode="TailTruncation" MaximumWidthRequest="150" VerticalOptions="Center" />
+                        <Label Text="·" Style="{StaticResource Caption}" VerticalOptions="Center" />
+                        <Label Text="{Binding RelativeDate}" Style="{StaticResource Caption}" VerticalOptions="Center" />
+                    </HorizontalStackLayout>
+
+                    <!-- Pastille d'état -->
+                    <Border Grid.Row="0" Grid.Column="1" Style="{StaticResource Pill}" BackgroundColor="{Binding StatusSoftColor}"
+                            HorizontalOptions="End">
+                        <HorizontalStackLayout Spacing="4">
+                            <controls:IconView Icon="{Binding StatusIcon}" Color="{Binding StatusColor}" Size="12" StrokeWidth="2.4" />
+                            <Label Text="{Binding StatusText}" FontSize="11" FontFamily="OpenSansSemibold"
+                                   TextColor="{Binding StatusColor}" VerticalOptions="Center" />
+                        </HorizontalStackLayout>
+                    </Border>
+
+                    <!-- Titre -->
+                    <Label Grid.Row="1" Grid.Column="0"
+                           Text="{Binding Title}"
+                           FontSize="16.5"
+                           FontAttributes="{Binding TitleAttributes}"
+                           Opacity="{Binding TitleOpacity}"
+                           TextColor="{DynamicResource TextPrimary}"
+                           LineHeight="1.18"
+                           MaxLines="3"
+                           LineBreakMode="TailTruncation" />
+
+                    <!-- Vignette -->
+                    <Border Grid.Row="1" Grid.RowSpan="2" Grid.Column="1"
+                            IsVisible="{Binding HasThumb}"
+                            WidthRequest="78" HeightRequest="78"
+                            StrokeThickness="0" StrokeShape="RoundRectangle 14"
+                            BackgroundColor="{DynamicResource Surface2}"
+                            VerticalOptions="Start">
+                        <Image Source="{Binding ThumbSource}" Aspect="AspectFill" Opacity="{Binding TitleOpacity}" />
+                    </Border>
+
+                    <!-- Résumé -->
+                    <Label Grid.Row="2" Grid.Column="0"
+                           Text="{Binding Summary}"
+                           IsVisible="{Binding ShowSummary}"
+                           Style="{StaticResource Body}"
+                           FontSize="14"
+                           MaxLines="2"
+                           LineBreakMode="TailTruncation"
+                           Opacity="{Binding TitleOpacity}" />
+
+                    <!-- Pied : non lu, favori, plus tard, durée, mot-clé, téléchargement en cours -->
+                    <HorizontalStackLayout Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2" Spacing="12" Margin="0,2,0,0">
+                        <HorizontalStackLayout Spacing="5" IsVisible="{Binding ShowUnreadDot}">
+                            <Ellipse Fill="{DynamicResource Accent}" WidthRequest="8" HeightRequest="8" VerticalOptions="Center" />
+                            <Label Text="Non lu" FontSize="11.5" FontFamily="OpenSansSemibold" TextColor="{DynamicResource Accent}" VerticalOptions="Center" />
+                        </HorizontalStackLayout>
+                        <controls:IconView Icon="star" Size="14" Filled="True" Color="{DynamicResource Warning}" IsVisible="{Binding IsFavorite}" />
+                        <controls:IconView Icon="bookmark" Size="14" Filled="True" Color="{DynamicResource Info}" IsVisible="{Binding IsReadLater}" />
+                        <HorizontalStackLayout Spacing="4" IsVisible="{Binding HasReadingTime}">
+                            <controls:IconView Icon="clock" Size="13" Color="{DynamicResource TextMuted}" />
+                            <Label Text="{Binding ReadingTimeText}" Style="{StaticResource Caption}" FontSize="11.5" VerticalOptions="Center" />
+                        </HorizontalStackLayout>
+                        <Border Style="{StaticResource Pill}" BackgroundColor="{DynamicResource AccentSoft}" IsVisible="{Binding IsHighlighted}">
+                            <Label Text="Mot-clé" FontSize="11" FontFamily="OpenSansSemibold" TextColor="{DynamicResource Accent}" />
+                        </Border>
+                        <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" WidthRequest="14" HeightRequest="14" />
+                    </HorizontalStackLayout>
+                </Grid>
+            </Grid>
+        </Border>
+    </SwipeView>
+</ContentView>

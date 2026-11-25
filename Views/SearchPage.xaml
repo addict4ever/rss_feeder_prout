@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:Rss_feeder_prout.ViewModels"
+             xmlns:controls="clr-namespace:Rss_feeder_prout.Controls"
+             x:Class="Rss_feeder_prout.Views.SearchPage"
+             Shell.NavBarIsVisible="False">
+
+    <Grid RowDefinitions="Auto,Auto,Auto,Auto,*">
+
+        <VerticalStackLayout Grid.Row="0" Padding="{DynamicResource HeaderPadding}" Spacing="10">
+            <Label Text="Recherche" Style="{StaticResource PageTitle}" Margin="4,6,0,0" />
+            <Border Style="{StaticResource SearchField}">
+                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
+                    <controls:IconView Icon="search" Color="{DynamicResource TextMuted}" Size="18" />
+                    <Entry x:Name="SearchEntry" Grid.Column="1" Placeholder="Rechercher dans tous les articles…"
+                           Text="{Binding SearchText}" ReturnType="Search" ReturnCommand="{Binding SearchCommand}"
+                           ClearButtonVisibility="WhileEditing" />
+                </Grid>
+            </Border>
+        </VerticalStackLayout>
+
+        <!-- Filtres -->
+        <ScrollView Grid.Row="1" Orientation="Horizontal" HorizontalScrollBarVisibility="Never">
+            <HorizontalStackLayout Spacing="8" Padding="14,0,14,8">
+                <controls:ChipView Text="Tout" IsSelected="{Binding IsPeriodAll}" Command="{Binding PeriodCommand}" CommandParameter="All" />
+                <controls:ChipView Text="24 h" IsSelected="{Binding IsPeriodDay}" Command="{Binding PeriodCommand}" CommandParameter="Day" />
+                <controls:ChipView Text="7 jours" IsSelected="{Binding IsPeriodWeek}" Command="{Binding PeriodCommand}" CommandParameter="Week" />
+                <controls:ChipView Text="30 jours" IsSelected="{Binding IsPeriodMonth}" Command="{Binding PeriodCommand}" CommandParameter="Month" />
+                <BoxView WidthRequest="1" HeightRequest="22" VerticalOptions="Center" />
+                <controls:ChipView Text="Non lus" Icon="mail-unread" IsSelected="{Binding UnreadOnly}" Command="{Binding ToggleUnreadCommand}" />
+                <controls:ChipView Text="Hors-ligne" Icon="check-circle" IsSelected="{Binding OfflineOnly}" Command="{Binding ToggleOfflineCommand}" />
+                <controls:ChipView Text="Titres seulement" Icon="doc" IsSelected="{Binding TitleOnly}" Command="{Binding ToggleTitleOnlyCommand}" />
+            </HorizontalStackLayout>
+        </ScrollView>
+
+        <!-- Recherches récentes -->
+        <VerticalStackLayout Grid.Row="2" IsVisible="{Binding ShowRecent}" Padding="14,0" Spacing="4">
+            <Grid ColumnDefinitions="*,Auto">
+                <Label Text="Recherches récentes" Style="{StaticResource SectionTitle}" Margin="4,6,4,4" />
+                <Button Grid.Column="1" Text="Effacer" Style="{StaticResource GhostButton}" FontSize="13" Command="{Binding ClearRecentCommand}" />
+            </Grid>
+            <FlexLayout BindableLayout.ItemsSource="{Binding RecentSearches}" Wrap="Wrap">
+                <BindableLayout.ItemTemplate>
+                    <DataTemplate>
+                        <controls:ChipView Text="{Binding .}" Icon="clock" Margin="0,0,8,8"
+                                           Command="{Binding Source={RelativeSource AncestorType={x:Type vm:SearchViewModel}}, Path=UseRecentCommand}"
+                                           CommandParameter="{Binding .}" />
+                    </DataTemplate>
+                </BindableLayout.ItemTemplate>
+            </FlexLayout>
+        </VerticalStackLayout>
+
+        <Label Grid.Row="3" Text="{Binding CountText}" Style="{StaticResource Caption}" Margin="20,0,20,4" />
+
+        <CollectionView Grid.Row="4" ItemsSource="{Binding Items}" SelectionMode="None">
+            <CollectionView.ItemTemplate>
+                <DataTemplate>
+                    <controls:ArticleCardView />
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+            <CollectionView.EmptyView>
+                <VerticalStackLayout Padding="40,50" Spacing="10">
+                    <controls:IconView Icon="search" Size="46" Color="{DynamicResource TextMuted}" />
+                    <Label Text="{Binding EmptyTitle}" Style="{StaticResource CardTitle}" HorizontalOptions="Center" />
+                    <Label Text="{Binding EmptyText}" Style="{StaticResource Caption}" HorizontalTextAlignment="Center" />
+                </VerticalStackLayout>
+            </CollectionView.EmptyView>
+        </CollectionView>
+
+        <ActivityIndicator Grid.Row="4" IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" VerticalOptions="Start" HorizontalOptions="Center" Margin="0,20,0,0" />
+    </Grid>
+</ContentPage>

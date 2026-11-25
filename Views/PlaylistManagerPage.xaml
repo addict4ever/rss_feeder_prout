@@ -1,98 +1,85 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             x:Class="Rss_feeder_prout.Views.PlaylistManagerPage"
              xmlns:vm="clr-namespace:Rss_feeder_prout.ViewModels"
-             xmlns:models="clr-namespace:Rss_feeder_prout.Models"
-             xmlns:views="clr-namespace:Rss_feeder_prout.Views"
-             x:DataType="vm:PlaylistManagerViewModel"
-             Shell.NavBarIsVisible="False"
-             Shell.PresentationMode="NotAnimated"
-             BackgroundColor="{StaticResource Gray950}">
+             xmlns:controls="clr-namespace:Rss_feeder_prout.Controls"
+             x:Class="Rss_feeder_prout.Views.PlaylistManagerPage"
+             Shell.NavBarIsVisible="False">
 
-    <Grid RowDefinitions="Auto, *">
+    <Grid RowDefinitions="Auto,Auto,*,Auto">
 
-        <Grid Grid.Row="0" ColumnDefinitions="*, Auto" VerticalOptions="Center" Margin="10,40,10,10">
-            <SearchBar Grid.Column="0"
-                       Placeholder="Rechercher une playlist..."
-                       Text="{Binding SearchText}"
-                       VerticalOptions="Center"
-                       Margin="0,0,10,0" />
-
-            <views:HeaderView Grid.Column="1" VerticalOptions="Center" />
+        <!-- En-tête -->
+        <Grid Grid.Row="0" Padding="{DynamicResource HeaderPadding}" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+            <controls:IconButton Grid.Column="0" Icon="back" Command="{Binding BackCommand}" />
+            <VerticalStackLayout Grid.Column="1" VerticalOptions="Center" Spacing="0" Margin="4,0">
+                <Label Text="{Binding Title}" Style="{StaticResource HeaderTitle}" />
+                <Label Text="{Binding Subtitle}" Style="{StaticResource Caption}" />
+            </VerticalStackLayout>
+            <controls:IconButton Grid.Column="2" Icon="sync" IconColor="{DynamicResource Accent}" Command="{Binding SyncAllCommand}" />
         </Grid>
 
-        <Grid Grid.Row="1">
-            <CollectionView ItemsSource="{Binding FilteredPlaylists}"
-                            SelectionMode="None">
+        <VerticalStackLayout Grid.Row="1" Padding="14,0,14,8" Spacing="10">
+            <Border Style="{StaticResource SearchField}">
+                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
+                    <controls:IconView Icon="search" Color="{DynamicResource TextMuted}" Size="18" />
+                    <Entry Grid.Column="1" Placeholder="Rechercher une catégorie…" Text="{Binding SearchText}" ClearButtonVisibility="WhileEditing" />
+                </Grid>
+            </Border>
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                <Button Grid.Column="0" Text="Importer OPML" Style="{StaticResource SecondaryButton}" FontSize="13.5" Command="{Binding ImportOpmlCommand}" />
+                <Button Grid.Column="1" Text="Exporter OPML" Style="{StaticResource SecondaryButton}" FontSize="13.5" Command="{Binding ExportOpmlCommand}" />
+            </Grid>
+        </VerticalStackLayout>
 
-                <CollectionView.EmptyView>
-                    <StackLayout Padding="30" IsVisible="{Binding IsNotBusy}">
-                        <Label Text="Aucune playlist trouvée. Ajoutez un nouveau flux pour commencer."
-                               HorizontalOptions="Center"
-                               VerticalOptions="Center"
-                               FontSize="Medium"
-                               TextColor="{StaticResource Gray500}" />
-                    </StackLayout>
-                </CollectionView.EmptyView>
+        <CollectionView Grid.Row="2" ItemsSource="{Binding FilteredPlaylists}" SelectionMode="None">
+            <CollectionView.ItemTemplate>
+                <DataTemplate>
+                    <SwipeView Margin="14,5" BackgroundColor="Transparent">
+                        <SwipeView.RightItems>
+                            <SwipeItems>
+                                <SwipeItem Text="Supprimer"
+                                           BackgroundColor="{DynamicResource Danger}"
+                                           Command="{Binding Source={RelativeSource AncestorType={x:Type vm:PlaylistManagerViewModel}}, Path=DeletePlaylistCommand}"
+                                           CommandParameter="{Binding .}" />
+                            </SwipeItems>
+                        </SwipeView.RightItems>
 
-                <CollectionView.ItemTemplate>
-                    <DataTemplate x:DataType="models:FeedPlaylist">
-                        <SwipeView>
-                            <SwipeView.RightItems>
-                                <SwipeItems>
-                                    <SwipeItem Text="Supprimer"
-                                               IconImageSource="{FontImageSource FontFamily=FAS, Glyph=&#xf2ed;, Color=White, Size=20}"
-                                               BackgroundColor="Red"
-                                               Command="{Binding Source={RelativeSource AncestorType={x:Type vm:PlaylistManagerViewModel}}, Path=DeletePlaylistCommand}"
-                                               CommandParameter="{Binding .}"/>
-                                </SwipeItems>
-                            </SwipeView.RightItems>
+                        <Border Style="{StaticResource Card}" Padding="0">
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type vm:PlaylistManagerViewModel}}, Path=EditPlaylistCommand}"
+                                                      CommandParameter="{Binding .}" />
+                            </Border.GestureRecognizers>
+                            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14" Padding="14,12,6,12">
+                                <Border WidthRequest="44" HeightRequest="44" StrokeThickness="0" StrokeShape="RoundRectangle 14"
+                                        BackgroundColor="{Binding AccentColor}" VerticalOptions="Center">
+                                    <Label Text="{Binding Initial}" FontFamily="OpenSansSemibold" FontSize="18" TextColor="#1A0E05"
+                                           HorizontalOptions="Center" VerticalOptions="Center" />
+                                </Border>
+                                <VerticalStackLayout Grid.Column="1" VerticalOptions="Center" Spacing="2">
+                                    <Label Text="{Binding Name}" Style="{StaticResource CardTitle}" />
+                                    <Label Text="{Binding SubtitleText}" Style="{StaticResource Caption}" />
+                                </VerticalStackLayout>
+                                <controls:IconButton Grid.Column="2" Icon="more-v" IsFlat="True" Size="36" IconSize="18" IconColor="{DynamicResource TextMuted}"
+                                                     Command="{Binding Source={RelativeSource AncestorType={x:Type vm:PlaylistManagerViewModel}}, Path=PlaylistMenuCommand}"
+                                                     CommandParameter="{Binding .}" />
+                            </Grid>
+                        </Border>
+                    </SwipeView>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
 
-                            <Border Margin="10,5" Padding="15"
-                                    StrokeShape="RoundRectangle 8"
-                                    BackgroundColor="{StaticResource Secondary}">
+            <CollectionView.EmptyView>
+                <VerticalStackLayout Padding="40" Spacing="10">
+                    <controls:IconView Icon="folder" Size="44" Color="{DynamicResource TextMuted}" />
+                    <Label Text="Aucune catégorie trouvée" Style="{StaticResource CardTitle}" HorizontalOptions="Center" />
+                    <Label Text="Ajoutez une catégorie ou importez un fichier OPML." Style="{StaticResource Caption}" HorizontalTextAlignment="Center" />
+                </VerticalStackLayout>
+            </CollectionView.EmptyView>
+        </CollectionView>
 
-                                <Border.GestureRecognizers>
-                                    <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type vm:PlaylistManagerViewModel}}, Path=EditPlaylistCommand}"
-                                                          CommandParameter="{Binding .}" />
-                                </Border.GestureRecognizers>
+        <Button Grid.Row="3" Text="+  Nouvelle catégorie" Style="{StaticResource PrimaryButton}" Margin="14,8,14,14"
+                Command="{Binding AddPlaylistCommand}" />
 
-                                <Grid ColumnDefinitions="Auto, *, Auto">
-                                    <Label Grid.Column="0" 
-                                           Text="&#xf058;" FontFamily="FAS" FontSize="20"
-                                           TextColor="Green"
-                                           IsVisible="{Binding IsActive}" 
-                                           VerticalOptions="Center"
-                                           Margin="0,0,10,0"/>
-
-                                    <StackLayout Grid.Column="1">
-                                        <Label Text="{Binding Name}" 
-                                               FontSize="Title" 
-                                               TextColor="White"
-                                               FontAttributes="Bold"/>
-
-                                        <Label Text="{Binding Urls.Count, StringFormat='{0} flux RSS enregistrés'}"
-                                               FontSize="Small"
-                                               TextColor="White"/>
-                                    </StackLayout>
-
-                                    <Image Grid.Column="2" 
-                                           Source="{FontImageSource FontFamily=FAS, Glyph=&#xf054;, Color=White, Size=18}"
-                                           VerticalOptions="Center"
-                                           Margin="10,0,0,0" />
-                                </Grid>
-                            </Border>
-                        </SwipeView>
-                    </DataTemplate>
-                </CollectionView.ItemTemplate>
-            </CollectionView>
-
-            <ActivityIndicator IsRunning="{Binding IsBusy}" 
-                               IsVisible="{Binding IsBusy}" 
-                               VerticalOptions="Center" 
-                               HorizontalOptions="Center" 
-                               Color="{StaticResource Primary}"/>
-        </Grid>
+        <ActivityIndicator Grid.Row="2" IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" VerticalOptions="Center" HorizontalOptions="Center" />
     </Grid>
 </ContentPage>
